@@ -74,6 +74,10 @@ new const float:MAX_CONTINUOUS_BACK_TIME = 0.72
 
 new const float:LOOP_DT = 0.04
 
+new const float:MOVE_START_TIME = 30.0
+new const float:LEADER_ADVANCE_STEP = 14.0
+new const float:FOLLOWER_MOVE_RECALC_DT = 0.10
+
 stock float:wrapPi(float:angle) {
   while(angle > PI) angle -= TWO_PI
   while(angle < -PI) angle += TWO_PI
@@ -300,6 +304,53 @@ stock assignTriangleTarget(float:cx, float:cy, float:r, &float:tx, &float:ty) {
   }
 }
 
+stock getSlotOffsetFromCenter(float:cx, float:cy, float:r, &float:offx, &float:offy) {
+  new float:sx
+  new float:sy
+
+  assignTriangleTarget(cx, cy, r, sx, sy)
+
+  offx = sx - cx
+  offy = sy - cy
+}
+
+stock bool:getLeaderPosition(&float:lx, &float:ly) {
+  new item
+  new float:dist
+  new float:yaw
+  new float:pitch
+  new id
+  new float:minDist = 0.0
+
+  lx = 0.0
+  ly = 0.0
+
+  for(new tries = 0; tries < 10; ++tries) {
+    item = ITEM_FRIEND|ITEM_WARRIOR
+    dist = minDist
+    watch(item, dist, yaw, pitch, id)
+
+    if(item == ITEM_NONE)
+      return false
+
+    if(isFriendWarrior(item) && id == 0) {
+      new float:x
+      new float:y
+      new float:z
+      getLocation(x, y, z)
+
+      new float:absYaw = getDirection() + getTorsoYaw() + getHeadYaw() + yaw
+      lx = x + dist * cos(absYaw)
+      ly = y + dist * sin(absYaw)
+      return true
+    }
+
+    minDist = dist + 0.4
+  }
+
+  return false
+}
+
 formationBot() {
   // Centro real del mapa usado como referencia de limites.
   new float:mapCx
@@ -328,6 +379,14 @@ formationBot() {
   new float:tx
   new float:ty
   assignTriangleTarget(cx, cy, triR, tx, ty)
+  new float:slotOffX
+  new float:slotOffY
+  getSlotOffsetFromCenter(cx, cy, triR, slotOffX, slotOffY)
+
+  new float:leaderMoveTargetX = cx + LEADER_ADVANCE_STEP
+  new float:leaderMoveTargetY = cy
+
+  new float:lastMoveRecalc = -1000.0
   new float:extraMargin = TRI_TARGET_MARGIN
   if(MAP_EDGE_MARGIN > extraMargin)
     extraMargin = MAP_EDGE_MARGIN
@@ -335,6 +394,8 @@ formationBot() {
   if(targetSafeHalf < TRI_FIT_MIN_RADIUS + 1.0)
     targetSafeHalf = safeHalf
   clampPointInsideSafe(tx, ty, mapCx, mapCy, targetSafeHalf)
+  clampPointInsideSafe(leaderMoveTargetX, leaderMoveTargetY, mapCx, mapCy, targetSafeHalf)
+
 
   // Fallback ligero: si un no-lider quedo en el centro, desplazarlo un poco.
   if(getID() != 0 && abs(tx - cx) < 0.05 && abs(ty - cy) < 0.05) {
@@ -400,17 +461,21 @@ formationBot() {
     new float:now = getTime()
 
     // Fase 2: Avance conjunto luego de formar el triangulo
-    if(now >= 30.0) {
-        if(sight() < 3.0)
-            rotateTo(getDirection() + PI/3.0)
-        else
-            rotateTo(0.0)
+    if(now >= MOVE_START_TIME) {
+      if(getID() == 0) {
+        tx = leaderMoveTargetX
+        ty = leaderMoveTargetY
+      } else if(now - lastMoveRecalc >= FOLLOWER_MOVE_RECALC_DT) {
+        new float:lx
+        new float:ly
 
-        if(isStanding() || isWalkingbk() || isWalkingcr() || isRunning())
-            walk()
-
-        wait(LOOP_DT)
-        continue
+        if(getLeaderPosition(lx, ly)) {
+          tx = lx + slotOffX
+          ty = ly + slotOffY
+          clampPointInsideSafe(tx, ty, mapCx, mapCy, targetSafeHalf)
+          lastMoveRecalc = now
+        }
+      }
     }
 
     // Guard rail: nunca permitir retroceso continuo indefinido.
