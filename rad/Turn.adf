@@ -1,0 +1,117 @@
+[Header]
+
+[Global]
+
+[Startup]
+
+[Running]
+
+[TURN body TO front]
+1=//while(isRotating()) wait(0.05)
+
+
+
+
+
+[TURN head TO front]
+1=rotateHead(0.0)
+2=//while(isHeadRotating()) wait(0.05)
+
+
+
+
+[TURN gun TO front]
+1=rotateTorso(0.0)
+2=//while(isTorsoRotating()) wait(0.05)
+
+
+
+
+
+
+
+
+
+
+[TURN body TO back]
+0="rotate(getDirection()-PI)"
+1="//while(isRotating()) wait(0.05)"
+[TURN body TO back FROM SCANNED]
+0="if(scanned == 1) {"
+1="	rotate(getDirection()+getTorsoYaw()+getHeadYaw()+yaw-PI)"
+2="	rotateHead(0.0)"
+3="	rotateTorso(0.0)"
+4="	while(isRotating() || isHeadRotating() || isTorsoRotating()) wait(0.05)"
+5="}"
+[TURN body TO random]
+0="if(random(1000) < 500) {"
+1="	rotate(getDirection()+PIQ)"
+2="} else {"
+3="	rotate(getDirection()-PIQ)"
+4="}"
+5="//while(isRotating()) wait(0.05)"
+[TURN body TO left]
+0="rotate(getDirection()+PIQ)"
+1="//while(isRotating()) wait(0.05)"
+[TURN body TO right]
+0="rotate(getDirection()-PIQ)"
+1="//while(isRotating()) wait(0.05)"
+[TURN gun TO left]
+0="rotateTorso(PIT)"
+1="//while(isTorsoRotating()) wait(0.05)"
+[TURN gun TO right]
+0="rotateTorso(-PIT)"
+1="//while(isTorsoRotating()) wait(0.05)"
+[TURN head TO left]
+0="rotateHead(PIT)"
+1="//while(isHeadRotating()) wait(0.05)"
+[TURN head TO right]
+0="rotateHead(-PIT)"
+1="//while(isHeadRotating()) wait(0.05)"
+[TURN gun TO random]
+0="if(random(1000) < 500) rotateTorso(PIT)"
+1="else rotateTorso(-PIT)"
+2="//while(isTorsoRotating()) wait(0.05)"
+[TURN head TO random]
+0="if(random(1000) < 500) rotateHead(PIT)"
+1="else rotateHead(-PIT)"
+2="//while(isHeadRotating()) wait(0.05)"
+[TURN body TO left FROM SCANNED]
+0="if(scanned == 1) {"
+1="	rotateTorso(-PIQ)"
+2="	rotateHead(-PIQ)"
+3="	rotate(getDirection()+getTorsoYaw()+getHeadYaw()+yaw+PIQ)"
+4="	//while(isRotating() || isHeadRotating() || isTorsoRotating()) wait(0.05)"
+5="}"
+[TURN body TO right FROM SCANNED]
+0="if(scanned == 1) {"
+1="	rotateTorso(PIQ) "
+2="	rotateHead(PIQ) "
+3="	rotate(getDirection()+getTorsoYaw()+getHeadYaw()+yaw-PIQ)"
+4="	//while(isRotating() || isHeadRotating() || isTorsoRotating()) wait(0.05)"
+5="}"
+[TURN gun TO front FROM SCANNED]
+0="if(scanned == 1) {"
+1="	rotateTorso(getHeadYaw()+yaw)"
+2="	while(isTorsoRotating()) wait(0.05)"
+3="}"
+[TURN body TO random FROM SCANNED]
+0="if(scanned == 1) {"
+1="	if(random(1000) < 500) {"
+2="		rotate(getDirection()+getTorsoYaw()+getHeadYaw()+yaw+PIS)"
+3="		rotateTorso(getHeadYaw()+yaw-PIS)"
+4="		rotateHead(0.0)"
+5="	} else {"
+6="		rotate(getDirection()+getTorsoYaw()+getHeadYaw()+yaw-PIS)"
+7="		rotateTorso(getHeadYaw()+yaw+PIS)"
+8="		rotateHead(0.0)"
+9="	}"
+10="	//while(isRotating() || isHeadRotating() || isTorsoRotating()) wait(0.05)"
+11="}"
+[TURN body TO front FROM SCANNED]
+0="if(scanned == 1) {"
+1="	rotateHead(0.0)"
+2="	rotateTorso(0.0) "
+3="	rotate(getDirection()+getTorsoYaw()+getHeadYaw()+yaw)"
+4="	//while(isRotating() || isHeadRotating() || isTorsoRotating()) wait(0.05)"
+5="}"

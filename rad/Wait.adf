@@ -1,0 +1,20 @@
+[Header]
+
+[Global]
+
+[Startup]
+
+[Running]
+
+[WAIT <1> SECONDS]
+1=wait(<1>)
+[WAIT ROTATE]
+0="while(isRotating() || isHeadRotating() || isTorsoRotating()) wait(0.05)"
+[WAIT ROTATE WITH AUTO FIRE]
+0="while(isRotating() || isHeadRotating() || isTorsoRotating()) {"
+1="	item = ENEMY_WARRIOR"
+2="	dist = aim(item)"
+3="	if(item == ENEMY_WARRIOR) {"
+4="		while(!shootBullet()) wait(0.05)"
+5="	}"
+6="}"

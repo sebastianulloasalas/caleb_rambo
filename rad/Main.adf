@@ -1,0 +1,174 @@
+<$identification$>
+
+//--------------
+// GunTactyx API
+//--------------
+
+#include "core"
+#include "math"
+#include "bots"
+
+//-------------------
+// internal constants
+//-------------------
+
+new const float:PI = 3.1415
+new const float:ARENA_SIDE = 131.5
+new const FRIEND_WARRIOR = ITEM_FRIEND|ITEM_WARRIOR
+new const FRIEND_GUN = ITEM_FRIEND|ITEM_GUN
+new const ENEMY_WARRIOR = ITEM_ENEMY|ITEM_WARRIOR
+new const ENEMY_GUN = ITEM_ENEMY|ITEM_GUN
+
+//--------------------------
+// internal global variables
+//--------------------------
+
+new float:STRATEGY = 0.0
+new float:TACTIC = 0.0
+new float:PIS = 0.0
+new float:PIQ = 0.0
+new float:PIT = 0.0
+new float:PID = 0.0
+new float:ARENA_SIDED = 0.0
+new float:ARENA_SIDEQ = 0.0
+new float:lasttime = 0.0
+new scanned = 0
+new started = 1
+
+//------------------------
+// action global variables
+//------------------------
+
+<$global$>
+
+//-----------
+// procedures
+//-----------
+
+float:getLocationYaw(float:px,float:py,&float:yaw) {
+	new float:dist = 0.0
+	new float:x
+	new float:y
+	new float:dx
+	new float:dy
+	new float:ryaw
+	//new float:ryawp
+
+	getLocation(x, y)
+
+	dx = (px - x)
+	dy = (py - y)
+
+	// calculate rotate from 0.0rad to target
+
+	if(dx >= 0.0) {
+		if(dy == 0.0) {
+			yaw = 0.0
+			dist = dx
+		} else if(dx == 0.0) {
+			if(dy > 0) yaw = PID
+			else yaw = -PID
+			dist = dy
+		} else {
+			yaw = atan(dy/dx)
+			dist = abs(y/sin(yaw))
+		}
+	} else {
+		if(dy == 0.0) {
+			//yaw = (getDirection()+getTorsoYaw()+getHeadYaw())
+			//if(getDirection() > 0.0) yaw = -PI
+			//else yaw = PI
+			yaw = 0.0
+			dist = -dx
+		} else {
+			yaw = atan(dx/dy)
+			dist = abs(x/sin(yaw))
+			if(dy > 0.0) yaw = (PID-yaw)
+			else yaw = -(PID+yaw)
+		}
+	}
+
+	// calculate rotate from robot point to target
+
+	ryaw = getDirection()+getTorsoYaw()+getHeadYaw()
+	yaw -= ryaw
+
+	return dist
+}
+
+fighter() {
+	new item = ITEM_WARRIOR
+	new float:dist = 0.0
+	new float:yaw
+	new float:pitch
+	new float:x
+	new float:y
+	new float:z
+	new touched
+	new sound
+
+<$fighter$>
+
+}
+
+soccer() {
+	new item = ITEM_WARRIOR
+	new float:dist = 0.0
+	new float:yaw
+	new float:pitch
+	new float:x
+	new float:y
+	new float:z
+	new touched
+	new sound
+
+<$soccer$>
+
+}
+
+racer() {
+	new item = ITEM_WARRIOR
+	new float:dist = 0.0
+	new float:yaw
+	new float:pitch
+	new float:x
+	new float:y
+	new float:z
+	new touched
+	new sound
+
+<$racer$>
+
+}
+
+main() {
+
+	//--- start time
+
+	lasttime = getTime()
+
+	//--- PI calculations
+
+	PIS = (PI/6)
+	PIQ = (PI/4)
+	PIT = (PI/3)
+	PID = (PI/2)
+
+	//--- arena side size
+
+	ARENA_SIDED = ARENA_SIDE / 2
+	ARENA_SIDEQ = ARENA_SIDE / 4
+
+	//--- actions startup
+		
+<$startup$>
+
+	//--- game play
+
+	switch(getPlay()) {
+    	case PLAY_FIGHT: fighter()
+    	case PLAY_SOCCER: soccer()
+    	case PLAY_RACE: racer()
+  	}
+}
+

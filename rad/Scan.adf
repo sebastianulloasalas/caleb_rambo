@@ -1,0 +1,188 @@
+[Header]
+
+[Global]
+
+[Startup]
+
+[Running]
+
+
+
+
+
+
+
+
+
+
+[SCAN enemy]
+0="item = ENEMY_WARRIOR"
+1="dist = 0.0"
+2="watch(item,dist,yaw,pitch)"
+3="if(item == ENEMY_WARRIOR) {"
+4="	bendTorso(pitch)"
+5="	bendHead(-pitch)"
+6="	scanned = 1"
+7="} else {"
+8="	item = ENEMY_GUN"
+9="	dist = hear(item,sound,yaw)"
+10="	if(item == ENEMY_GUN) {"
+11="		scanned = 1"
+12="	} else {"
+13="		scanned = 0"
+14="	}"
+15="}"
+[SCAN friend]
+0="item = FRIEND_WARRIOR"
+1="dist = 0.0"
+2="watch(item,dist,yaw,pitch)"
+3="if(item == FRIEND_WARRIOR) {"
+4="	bendTorso(pitch)"
+5="	bendHead(-pitch)"
+6="	scanned = 1"
+7="} else {"
+8="	item = FRIEND_GUN"
+9="	dist = hear(item,sound,yaw)"
+10="	if(item == FRIEND_GUN) {"
+11="		scanned = 1"
+12="	} else {"
+13="		scanned = 0"
+14="	}"
+15="}"
+[SCAN place x <1> y <2>]
+0="dist = getLocationYaw(<1>, <2>, yaw)"
+1="scanned = 1"
+[SCAN square center]
+0="dist = getLocationYaw(0, 0, yaw)"
+1="scanned = 1"
+[SCAN square north]
+0="dist = getLocationYaw(0, ARENA_SIDED, yaw)"
+1="scanned = 1"
+[SCAN square south]
+0="dist = getLocationYaw(0, -ARENA_SIDED, yaw)"
+1="scanned = 1"
+[SCAN square east]
+0="dist = getLocationYaw(ARENA_SIDED, 0, yaw)"
+1="scanned = 1"
+[SCAN square west]
+0="dist = getLocationYaw(-ARENA_SIDED, 0, yaw)"
+1="scanned = 1"
+[SCAN square northeast]
+0="dist = getLocationYaw(ARENA_SIDED, ARENA_SIDED, yaw)"
+1="scanned = 1"
+[SCAN square southwest]
+0="dist = getLocationYaw(-ARENA_SIDED, -ARENA_SIDED, yaw)"
+1="scanned = 1"
+[SCAN square southeast]
+0="dist = getLocationYaw(ARENA_SIDED, -ARENA_SIDED, yaw)"
+1="scanned = 1"
+[SCAN square northwest]
+0="dist = getLocationYaw(-ARENA_SIDED, ARENA_SIDED, yaw)"
+1="scanned = 1"
+[SCAN ball]
+0="item = ITEM_TARGET"
+1="dist = 0.0"
+2="watch(item,dist,yaw,pitch)"
+3="if(item == ITEM_TARGET) {"
+4="	bendTorso(pitch)"
+5="	bendHead(-pitch)"
+6="	scanned = 1"
+7="} else {"
+8="	scanned = 0"
+9="}"
+[SCAN ITEM armor]
+0="item = ITEM_ARMOR"
+1="dist = 0.0"
+2="watch(item,dist,yaw,pitch)"
+3="if(item == ITEM_ARMOR) {"
+4="	bendTorso(pitch)"
+5="	bendHead(-pitch)"
+6="	scanned = 1"
+7="} else {"
+8="	scanned = 0"
+9="}"
+[SCAN ITEM bullet]
+0="item = ITEM_BULLET"
+1="dist = 0.0"
+2="watch(item,dist,yaw,pitch)"
+3="if(item == ITEM_BULLET) {"
+4="	bendTorso(pitch)"
+5="	bendHead(-pitch)"
+6="	scanned = 1"
+7="} else {"
+8="	scanned = 0"
+9="}"
+[SCAN ITEM food]
+0="item = ITEM_FOOD"
+1="dist = 0.0"
+2="watch(item,dist,yaw,pitch)"
+3="if(item == ITEM_FOOD) {"
+4="	bendTorso(pitch)"
+5="	bendHead(-pitch)"
+6="	scanned = 1"
+7="} else {"
+8="	scanned = 0"
+9="}"
+[SCAN ITEM grenade]
+0="item = ITEM_GRENADE"
+1="dist = 0.0"
+2="watch(item,dist,yaw,pitch)"
+3="if(item == ITEM_GRENADE) {"
+4="	bendTorso(pitch)"
+5="	bendHead(-pitch)"
+6="	scanned = 1"
+7="} else {"
+8="	scanned = 0"
+9="}"
+[SCAN ITEM gun]
+0="item = ITEM_GUN"
+1="dist = 0.0"
+2="watch(item,dist,yaw,pitch)"
+3="if(item == ITEM_GUN) {"
+4="	bendTorso(pitch)"
+5="	bendHead(-pitch)"
+6="	scanned = 1"
+7="} else {"
+8="	scanned = 0"
+9="}"
+[SCAN ITEM medikit]
+0="item = ITEM_MEDIKIT"
+1="dist = 0.0"
+2="watch(item,dist,yaw,pitch)"
+3="if(item == ITEM_MEDIKIT) {"
+4="	bendTorso(pitch)"
+5="	bendHead(-pitch)"
+6="	scanned = 1"
+7="} else {"
+8="	scanned = 0"
+9="}"
+[SCAN ITEM sign]
+0="item = ITEM_SIGN"
+1="dist = 0.0"
+2="watch(item,dist,yaw,pitch)"
+3="if(item == ITEM_SIGN) {"
+4="	bendTorso(pitch)"
+5="	bendHead(-pitch)"
+6="	scanned = 1"
+7="} else {"
+8="	scanned = 0"
+9="}"
+[SCAN track]
+0="getLocation(x, y)"
+1="if(x <= 0.0 && y < 0.0) {		//--- sw"
+2="	if(y > -ARENA_SIDEQ) dist = getLocationYaw(-ARENA_SIDEQ,-ARENA_SIDED,yaw)"
+3="	else dist = getLocationYaw(ARENA_SIDED,-ARENA_SIDEQ-20.0,yaw)"
+4=""
+5="} else if(x < 0.0 && y >= 0.0) { 	//--- nw"
+6="	if(x > -ARENA_SIDEQ) dist = getLocationYaw(-ARENA_SIDED, ARENA_SIDEQ,yaw)"
+7="	else dist = getLocationYaw(-ARENA_SIDEQ-20.0,-ARENA_SIDED,yaw)"
+8=""
+9="} else if(x >= 0.0 && y > 0.0) {	//--- ne"
+10="	if(y < ARENA_SIDEQ) getLocationYaw(ARENA_SIDED,ARENA_SIDED,yaw)"
+11="	else dist = getLocationYaw(-ARENA_SIDED,ARENA_SIDEQ+20.0,yaw)"
+12=""
+13="} else if(x >= 0.0 && y <= 0.0) { 	//--- se"
+14="	if(x < ARENA_SIDEQ) dist = getLocationYaw(ARENA_SIDED,-ARENA_SIDEQ,yaw)"
+15="	else dist = getLocationYaw(ARENA_SIDEQ+20.0,ARENA_SIDED,yaw)"
+16="}"
+17="scanned = 1"

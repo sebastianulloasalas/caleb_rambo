@@ -1,0 +1,39 @@
+[Header]
+
+[Global]
+
+[Startup]
+
+[Running]
+
+
+
+[MOVE slow TO front]
+0="if(! isWalking()) {"
+1="	if(isWalkingbk()) stand()"
+2="	walk()"
+3="	wait(1.0)"
+4="}"
+5=""
+[MOVE slow TO back]
+0="if(! isWalkingbk() ) {"
+1="	if(! isStanding() ) {"
+2="		stand()"
+3="		wait(1.0)"
+4="	}"
+5="	walkbk()"
+6="	wait(1.0)"
+7="}"
+[MOVE fast TO front]
+0="if(! isRunning()) {"
+1="	if(isWalkingbk()) {"
+2="		stand()"
+3="		wait(0.5)"
+4="	}"
+5="	if(isStanding()) {"
+6="		walk()"
+7="		wait(0.5)"
+8="	}"
+9="	run()"
+10="	wait(0.5)"
+11="}"

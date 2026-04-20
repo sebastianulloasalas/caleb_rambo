@@ -1,0 +1,310 @@
+<html>
+<head>
+<title>GUN-TACTYX Readme</title>
+</head>
+<body bgcolor=#CCCCCC>
+<pre>
+<b>&quot;GUN-TACTYX&quot; 1.1.5</b>
+Copyright &copy; 2003-2006, Leonardo Boselli.
+All rights reserved.
+
+					November 30th 2005
+<b>INDEX</b>
+-----
+
+<a href="#what_is_this">What is this?</a>
+<a href="#how_to_play">How to play</a>
+<a href="#known_bugs">Known bugs</a>
+<a href="#donations">Donations</a>
+<a href="#acknowledgements">Acknowledgements</a>
+<a href="#disclaimers">Disclaimers</a>
+<a href="#license">License</a>
+<a href="#contacts">Contacts</a>
+
+
+<a name="what_is_this"><b>What is this?</b></a>
+-------------
+
+&quot;GUN-TACTYX&quot; is a CROBOTS-like game with QUAKE3-style graphics.
+You can read more details about the game in the file
+&quot;<a href="GUN-TACTYX-manual.htm">GUN-TACTYX-manual.htm</a>&quot;, at the site <a href="http://apocalyx.sf.net">http://apocalyx.sf.net</a> or
+at the official site of the game <a href="http://guntactyx.gameprog.it">http://guntactyx.gameprog.it</a>
+
+This program is intended for the Windows platform (Win98 SE or
+higher version). The development machine has:
+
+OPSYS        - Windows 98
+CPU          - Athlon 800 MHz
+RAM          - 256 Mb
+GRAPHIC CARD - GeForce FX 5200 (128 Mb)
+SOUND CARD   - SoundBlaster Live! 1024
+
+To run the application you need a PC with Windows 98 SE or higher
+and OpenGL drivers installed. Hardware 3D acceleration is required
+and the resolution of the graphic card must use at least 16 bits
+color mode to execute the application full screen or in a window.
+
+
+<a name="how_to_play"><b>How to play</b></a>
+-----------
+
+Players must develop the AI of their own team of bots. The behavior
+of the team is controlled by a script written using the SMALL
+scripting language. The code of the scripts is contained in files
+with extension &quot;.sma&quot; in the &quot;\bots&quot; sub-folder: They are simple text
+files that a player can create and modify with his preferred editor.
+
+Once the source of the script is available, say &quot;myBot.sma&quot;, it must
+be compiled with the SMALL compiler, a command line compiler named
+&quot;sc.exe&quot;, or even through a command of the console of the game
+(invoke it pressing the [F3] key). If you choose the external
+program, type at the command line from a DOS window:
+
+  sc myBot.sma
+
+and a &quot;myBot.amx&quot; containing the bytecode of the script will appear.
+
+Finally, the player needs to start &quot;GUN-TACTYX.exe&quot; and the script
+will be ready to fight against other scripts.
+
+For more information about the game itself and its purpose, read the
+attached manual (<a href="GUN-TACTYX-manual.htm">GUN-TACTYX-manual.htm</a>).
+
+Here follows a description of the most important keys and buttons that
+a player can use to interact with the application.
+
+When the application starts, you can choose four different modes
+of operation pressing the corresponding digit keys or, if you wait
+a few seconds, see the rolling demo run. Then other keys enable
+particular context sensitive functions. Here is the complete
+hierarchy of the keys, but remember that you can show (or hide)
+the list pressing [F1] during the run of the application.
+
+[1] Play a single match in 3D mode. During the fights you can see
+    the models of the warriors and all the 3D stuff; available keys:
+    [I] Enter/exit interactive mode: In interactive mode a player
+        can pilot one on the bots using the mouse and the arrow
+        keys. To read a complete list of the keys available and
+        their meaning, press [F1] during this mode. The behavior
+        of the keys is quite different from the usual FPS games
+        and a bit of practice is needed, because the performance
+        of the bot and its movements are the same accessible to
+        AI-driven bots.
+    [V] Show/hide the map of the battlefield
+    [D] Show/hide the data of the warriors
+    [C] Link the camera to one of the warriors circling in a team
+    [X] Change the team whose warriors have the camera linked to 
+    [Z] Circle views auto/manual
+    [T] Follow the target (useful only in &quot;Soccer&quot; mode to follow
+        the movement of the ball)
+    [+/-] Increase/decrease the time multiplier; the effective
+          speed, relative to real time, is shown below the timer.
+          Top speeds depends on the machine where the simulation
+          runs on
+    [M] Music on/off
+    [S] Sound on/off
+    [MOUSE] Look around
+    [L/R BUTTONS] Move forward/backward
+    [UP/DOWN] Mode forward/backward (horizontally)
+    [LEFT/RGHT] Slide left/right
+    [PREV/NEXT] Move higher/lower
+    [PAUSE] Pause on/off
+    [1] Restart match with the same teams
+    [2] Replay the current match from the beginning
+    [3] Restart match with random teams
+    [ENTER] Exit
+[2] Play a single match in 2D mode. Only the map (top view)
+    is active, while 3D models are disabled
+    [+/-] Increase/decrease the time multiplier; the effective
+          speed, relative to real time, is shown below the timer.
+          Top speeds depends on the machine where the simulation
+          runs on
+    [M] Music on/off
+    [PAUSE] Pause on/off
+    [1] Restart match with the same teams
+    [2] Replay the current match from the beginning
+    [3] Restart match with random teams
+    [ENTER] Exit
+[3] Play random matches in sequence
+    [+/-] Increase/decrease the time multiplier; the effective
+          speed, relative to real time, is shown below the timer.
+          Top speeds depends on the machine where the simulation
+          runs on
+    [M] Music on/off
+    [PAUSE] Pause on/off
+    [1] Restart match with the same teams
+    [2] Replay the current match from the beginning
+    [3] Restart match with random teams
+    [ENTER] Exit
+[4] Show the results of the random matches
+    [M] Music on/off
+    [ DEL ] Delete the results
+    [ENTER] Exit
+[0] (zero) Show the options
+    [E] Choose the automatic script that must be executed before
+        a match can start. These kind of scripts are stored in
+        &quot;\engine&quot; sub-folder.
+    [P] Change the default package. Packages are &quot;.dat&quot; files that
+        contain all the resources of the game (images, sounds,
+        models and scenery)
+    [L] Change the default level. Levels are different scenes
+        stored in the same package
+    [T] Change the number of teams, circling through 4,3,2
+    [A] Choose a script for the A team
+    [B] Choose a script for the B team
+    [C] Choose a script for the C team
+    [D] Choose a script for the D team
+    [N] Change the number of the team mates from 64 to 1
+    [G] Change the goal of the match. Possible values are:
+        Terminate enemy chief, terminate enemy team,
+        capture enemy sign
+    [K] Change the type of the match. Possible values are:
+        Fight, Race, Soccer
+    [O] Change the duration (in seconds) after which the match ends
+    [R] Change the minimum frame rate required during the matches
+    [F] Show or hide visual effects (the lens flare of the sun)
+    [M] Music on/off
+    [X] Save the changes made to the options (exit)
+    [Q] Discard the changes made to the options (quit)
+[T] Change the number of teams, circling through 4,3,2.
+    If your machine has poor performances, use a low number
+    of teams. The name of the number of teams is shown on the
+    screen around the &quot;vs&quot; string
+[N] Change the number of the team mates, circling through
+    64,32,16,8,4,2,1,64. If your machine has poor performances,
+    use a low number of team mates. The number of mates is
+    shown on the screen above the &quot;vs&quot; string
+[A] Choose a script for the A team
+[B] Choose a script for the B team
+[C] Choose a script for the C team
+[D] Choose a script for the D team
+[M] Music on/off
+[S] Sound on/off
+
+
+<a name="known_bugs"><b>Known bugs</b></a>
+----------
+
+The current version of the game is the final release 1.1.5
+
+If you find any odd behavior that you think is a bug, send a report
+to me at the email address: <a href="mailto:tetractys@users.sourceforge.net">tetractys@users.sourceforge.net</a>
+
+Remember that apparent bugs related to 3D visualization are usually
+caused by OpenGL drivers not updated, while very low frame rates
+are normal on slower machines. In the latter case you should
+reduce the number of warriors or the number of teams (pressing the
+[T] and [N] key when the 'intro' screen is shown).
+
+
+<a name="donations"><b>Donations</b></a>
+---------
+
+The APOCALYX Engine and all the related stuff (sources, demos and
+games) are provided for free as an open source project. I hope that
+my work benefits you as a possible learning tool of particular
+coding techniques or as an effective library to be included in your
+own programs.
+
+If you find my code useful and want to support further improvements
+of the project, you can fund it with donations. The 5% of the
+amount you are going to donate will remain to SourceForge.net
+for their great hosting service.
+
+Thank you in advance!
+
+URL for donations:
+  <a href="http://www.sourceforge.net/donate/index.php?group_id=65456">http://www.sourceforge.net/donate/index.php?group_id=65456</a>
+
+
+<a name="acknowledgements"><b>Acknowledgements</b></a>
+----------------
+
+I wish to thank all the people who helped in developing this game. 
+
+First of all, I must thank Matteo &quot;Fuzz&quot; Perenzoni and his
+&quot;Apocalypse demo&quot; written for the NeHe's Apocalypse Contest
+<a href="http://nehe.gamedev.net/data/contests/contest.asp?contest=03">http://nehe.gamedev.net/data/contests/contest.asp?contest=03</a>
+The sources of his demo were the starting point for the APOCALYX
+renderer and many nice effects. 
+
+Then I must thank a lot of great internet resources about game
+programming: News Portals, such as
+GameDev <a href="http://www.gamedev.net/">http://www.gamedev.net/</a> ,
+FlipCode <a href="http://www.flipcode.net/">http://www.flipcode.net/</a> ,
+CFXweb <a href="http://www.cfxweb.net/">http://www.cfxweb.net/</a> ,
+GP Italia <a href="http://www.gameprog.it/">http://www.gameprog.it/</a> and
+OpenGL.org <a href="http://www.opengl.org/">http://www.opengl.org/</a> ,
+Game Tutorials Sites, such as
+NeHe <a href="http://nehe.gamedev.net/">http://nehe.gamedev.net/</a> ,
+Game Tutorials <a href="http://www.gametutorials.com/">http://www.gametutorials.com/</a> ,
+SULACO <a href="http://www.sulaco.co.za/">http://www.sulaco.co.za/</a>
+and many others. 
+
+Finally, I wish to thank Grant Struthers (<a href="mailto:TheGragster@yahoo.com">TheGragster@yahoo.com</a>)
+and Janus (<a href="mailto:janus@planetquake.com">janus@planetquake.com</a>), for providing the models of
+the warrior and the weapon used in GUN-TACTYX (their resources are
+hosted by PolyCount <a href="http://www.polycount.com">http://www.polycount.com</a>), and Tom Poindexter
+for creating CROBOTS in the far 1985: That game was a great
+source of inspiration for the development of my on-line <a href="http://jrobots.cfxweb.net">JROBOTS
+</a>and the design of GUN-TACTYX.
+<br>Thanks also to Alan Lund, Walter Nistico, Samuel Grabski,
+Moray Goodwin, Christo Fogelberg and Tim Strazny for all the
+ideas and the help provided during the development of JROBOTS.
+
+
+<a name="legal_disclaimer"><b>Legal Disclaimer</b></a>
+----------------
+
+I exclude any and all implied warranties, including warranties of
+merchantability and fitness for a particular purpose. I make no warranty or
+representation, either express or implied, with respect to this software,
+its quality, performance, merchantability, or fitness for a particular purpose.
+I shall have no liability for special, incidental, or consequential damages
+arising out of or resulting from the use, misuse, or modification of this
+software. All trademarks are property of their respective owners.
+
+
+<a name="terms_for_use"><b>Terms for use</b> (Part of license)</a>
+-------------
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation; either version 2 of
+the License, or (at your option) any later version.
+
+This software is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this library; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+
+<a name="contact_information"><b>Contact information</b></a>
+-------------------
+
+You may contact me in the following manners:
+
+* Send mail to:
+
+  Leonardo Boselli
+  Via Diano Calderina, 7
+  18100 Imperia
+  ITALY
+
+* Send E-mail to:
+
+  <a href="mailto:boselli@uno.it">boselli@uno.it</a> or
+  <a href="mailto:tetractys@users.sourceforge.net">tetractys@users.sourceforge.net</a>
+
+* On the World Wide Web:
+
+ GUN-TACTYX Game: <a href="http://guntactyx.gameprog.it">http://guntactyx.gameprog.it</a>
+ APOCALYX Engine: <a href="http://apocalyx.sourceforge.net">http://apocalyx.sourceforge.net</a>
+ JROBOTS Battles: <a href="http://jrobots.sourceforge.net">http://jrobots.sourceforge.net</a>
+</pre>
+</body>
+</html>

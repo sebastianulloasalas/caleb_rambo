@@ -1,0 +1,18 @@
+[Header]
+
+[Global]
+
+[Startup]
+
+[Running]
+
+
+[DO TACTIC <1>]
+1=TACTIC = <1>
+2=break
+
+[DO STRATEGY <1>]
+0="STRATEGY = <1>"
+1="break"
+[DO Nothing]
+0="// do nothing"

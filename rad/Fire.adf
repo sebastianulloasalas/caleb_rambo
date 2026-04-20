@@ -1,0 +1,45 @@
+[Header]
+
+[Global]
+
+[Startup]
+
+[Running]
+
+
+
+[FIRE bullet]
+0="if(getBulletLoad() > 0) {"
+1="	aim(item)"
+2="	if(item != FRIEND_WARRIOR) {"
+3="		while(!shootBullet()) wait(0.05)"
+4="	}"
+5="}"
+[FIRE grenade]
+0="if(getGrenadeLoad() > 0) {"
+1="	while(!launchGrenade()) wait(0.05)"
+2="}"
+[FIRE <1> bullets]
+0="for(dist=1.0; dist<=<1>; dist++) {"
+1="	if(getBulletLoad() > 0) {"
+2="		aim(item)"
+3="		if(item != FRIEND_WARRIOR) {"
+4="			while(!shootBullet()) wait(0.05)"
+5="		}"
+6="	}"
+7="}"
+[FIRE all]
+0="if(getGrenadeLoad() > 0 && dist > 30.0 && dist <= 60.0) {"
+1="	bendTorso(pitch)"
+2="	while(isTorsoBending()) wait(0.05)"
+3="	while(!launchGrenade()) wait(0.05)"
+4="	bendTorso(0.0)"
+5="} else {"
+6="	if(getBulletLoad() > 0) {"
+7="		aim(item)"
+8="		if(item != FRIEND_WARRIOR) {"
+9="			while(!shootBullet()) wait(0.05)"
+10="			while(!shootBullet()) wait(0.05)"
+11="		}"
+12="	}"
+13="}"

@@ -1,0 +1,41 @@
+Team
+	Identification
+		Name: New-Robot
+		Author: GT RAD Robot Maker
+		Version: 1.0
+		Creation date: 17/01/05
+		Modification date: 17/01/05
+		E-mail: amaurycarvalho@hotmail.com
+		Comments: New robot project
+	Profiles
+		Fighter
+			0: General Strategy
+				0: Main Tactic
+					MOVE fast TO front
+					WHEN stopped DO TACTIC 1
+					SCAN enemy
+					WHEN scanned DO TACTIC 2
+				1: Change Direction Tactic
+					TURN body TO random
+					DO TACTIC 0
+				2: Fight Tactic
+					TURN body TO front FROM SCANNED
+					TURN gun TO front
+					FIRE bullet
+					DO TACTIC 0
+		Soccer
+			0: General Strategy
+				0: Main Tactic
+					MOVE fast TO front
+					WHEN stopped DO TACTIC 1
+				1: Change Direction Tactic
+					TURN body TO random
+					DO TACTIC 0
+		Racer
+			0: General Strategy
+				0: Main Tactic
+					MOVE fast TO front
+					WHEN stopped DO TACTIC 1
+				1: Change Direction Tactic
+					TURN body TO random
+					DO TACTIC 0

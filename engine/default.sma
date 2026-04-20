@@ -1,0 +1,91 @@
+// Default
+
+#include "core"
+#include "math"
+#include "engn"
+
+/* This script sets all the variables to their default values.
+   Change some of the values to experience different settings.
+*/
+main() {
+  /* the second argument of 'setVariable' MUST be a float */
+  setVariable(BOT_MEMORY_SIZE, 32768.0);
+  setVariable(BOT_CPU_FREQUENCY, 10000.0);
+  setVariable(SIMULATION_TIME_STEP, 0.01);
+  setVariable(POWERUP_MEDIKIT_VALUE_INIT, 50.0);
+  setVariable(POWERUP_FOOD_VALUE_INIT, 50.0);
+  setVariable(POWERUP_ARMOR_VALUE_INIT, 100.0);
+  setVariable(POWERUP_BULLETS_VALUE_INIT, 50.0);
+  setVariable(POWERUP_GRENADES_VALUE_INIT, 3.0);
+  setVariable(POWERUP_MEDIKIT_RESPAWN_TIME, 10.0);
+  setVariable(POWERUP_FOOD_RESPAWN_TIME, 15.0);
+  setVariable(POWERUP_ARMOR_RESPAWN_TIME, 20.0);
+  setVariable(POWERUP_BULLETS_RESPAWN_TIME, 10.0);
+  setVariable(POWERUP_GRENADES_RESPAWN_TIME, 10.0);
+  setVariable(BOT_SIZE_X, 1.125);
+  setVariable(BOT_SIZE_Z, 1.5);
+  setVariable(BOT_SIZE_Z_CROUCHED, 1.125);
+  setVariable(BOT_SIZE_Y, 1.125);
+  setVariable(BOT_SPACING, 1.75);
+  setVariable(BOT_TIME_LOST_TO_SIGHT, 0.01);
+  setVariable(BOT_TIME_LOST_TO_AIM, 0.04);
+  setVariable(BOT_TIME_LOST_TO_HEAR, 0.04);
+  setVariable(BOT_TIME_LOST_TO_WATCH, 0.04);
+  setVariable(BOT_TIME_LOST_TO_LISTEN, 0.04);
+  setVariable(BOT_TIME_NEEDED_TO_SAY, 0.5);
+  setVariable(BOT_TIME_NEEDED_TO_SPEAK, 0.25);
+  setVariable(BOT_TIME_NEEDED_TO_MOVE, 1.0);
+  setVariable(BOT_TIME_NEEDED_TO_DROP, 0.5);
+  setVariable(BOT_TIME_NEEDED_TO_SHOOT, 0.5);
+  setVariable(BOT_KICK_SPEED_MAX, 5.0);
+  setVariable(BOT_SPEED_VERTICAL_MAX, 7.5);
+  setVariable(BOT_SPEED_ROTATION, 1.5708);
+  setVariable(BOT_SPEED_WALKCR, 2.5);
+  setVariable(BOT_SPEED_WALKBK, -2.5);
+  setVariable(BOT_SPEED_WALK, 2.5);
+  setVariable(BOT_SPEED_RUN, 5.0);
+  setVariable(BOT_ENERGY_MAX, 100.0);
+  setVariable(BOT_ENERGY_INIT, 50.0);
+  setVariable(BOT_ENERGY_RUN, 2.0);
+  setVariable(BOT_ENERGY_STAND, 1.0);
+  setVariable(BOT_ENERGY_DROP_MAX, 50.0);
+  setVariable(BOT_HEALTH_MAX, 100.0);
+  setVariable(BOT_HEALTH_INIT, 100.0);
+  setVariable(BOT_HEALTH_BULLET, 50.0);
+  setVariable(BOT_HEALTH_GRENADE_MAX, 150.0);
+  setVariable(BOT_HEALTH_DROP_MAX, 50.0);
+  setVariable(BOT_ARMOR_MAX, 100.0);
+  setVariable(BOT_ARMOR_INIT, 0.0);
+  setVariable(BOT_ARMOR_DROP_MAX, 100.0);
+  setVariable(BOT_TORSO_YAW_MAX, 1.047);
+  setVariable(BOT_TORSO_YAW_MIN, -1.047);
+  setVariable(BOT_TORSO_PITCH_MAX, 0.7854);
+  setVariable(BOT_TORSO_PITCH_MIN, -0.7854);
+  setVariable(BOT_TORSO_SPEED_ROT, 1.5708);
+  setVariable(BOT_HEAD_YAW_MAX, 1.047);
+  setVariable(BOT_HEAD_YAW_MIN, -1.047);
+  setVariable(BOT_HEAD_PITCH_MAX, 0.7854);
+  setVariable(BOT_HEAD_PITCH_MIN, -0.7854);
+  setVariable(BOT_HEAD_SPEED_ROT, 1.5708);
+  setVariable(BOT_HEAD_ANGLE_OF_VIEW, 0.5236);
+  setVariable(BOT_SENSORS_DISTANCE_MAX, 200.0);
+  setVariable(WEAPON_LENGTH, 0.9375);
+  setVariable(WEAPON_HEIGHT, 0.5625);
+  setVariable(WEAPON_BULLET_SPEED, 30.0);
+  setVariable(WEAPON_BULLET_LOAD_MAX, 100.0);
+  setVariable(WEAPON_BULLET_LOAD_INIT, 50.0);
+  setVariable(WEAPON_BULLET_DROP_MAX, 50.0);
+  setVariable(WEAPON_GRENADE_SPEED, 15.0);
+  setVariable(WEAPON_GRENADE_EXPL_DELAY, 3.0);
+  setVariable(WEAPON_GRENADE_EXPL_DURATION, 1.0);
+  setVariable(WEAPON_GRENADE_RANGE_MAX, 5.0);
+  setVariable(WEAPON_GRENADE_LOAD_MAX, 3.0);
+  setVariable(WEAPON_GRENADE_LOAD_INIT, 1.0);
+  setVariable(WEAPON_GRENADE_DROP_MAX, 3.0);
+  setVariable(WORLD_GRAVITY, -9.81);
+  setVariable(ARENA_SIZE, 131.5);
+  setVariable(GOAL_SIZE, 7.5);
+  setVariable(TARGET_SIZE, 0.3125);
+  setVariable(TARGET_MAX_SPEED, 20.0);
+  setVariable(GROUND_RESTITUTION, 0.8);
+}
