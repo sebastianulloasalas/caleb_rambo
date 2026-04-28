@@ -377,20 +377,18 @@ stock detectar_estado_del_bot() {
 }
 
 fight() {
-  walk()
+  g_headScanDir = SCAN_HEAD_LIMIT
 
-  for(;;) {
-    if(isStanding()) {
-      rotate(getDirection() + 1.5708)
-      wait(0.5)
-      walk()
+  detectar_estado_del_bot()
+
+  if(getID() == CALEB_ID) {
+    ejecutar_estrategia_caleb()
+  } else if(getID() == RAMBO_ID_INICIAL) {
+    ejecutar_estrategia_rambo()
+  } else {
+    for(;;) {
+      esperar_informacion_o_apoyar()
     }
-
-    if(sight() < 3.0) {
-      rotate(getDirection() + 0.7)
-    }
-
-    rotateHead(1.047)
   }
 }
 
