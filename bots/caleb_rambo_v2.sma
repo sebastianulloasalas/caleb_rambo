@@ -34,6 +34,8 @@ new const float:ARRIVE_DIST = 2.0   // Distancia para considerar que Caleb llego
 new const float:WALL_DIST = 4.0     // Si hay pared cerca, Caleb cambia de rama.
 new const float:REPORT_INTERVAL = 1.0
 new const float:SCAN_HEAD_LIMIT = 1.047
+new const float:SAFE_ENEMY_DISTANCE = 25.0   // Distancia minima que Caleb intenta mantener frente al enemigo.
+new const float:FLEE_DISTANCE = 10.0         // Distancia del punto de escape cuando Caleb ve un enemigo.
 
 // Filtros de objetos usados por sensores.
 // Reservado para la siguiente etapa, cuando los bots deban ubicar aliados.
@@ -51,6 +53,7 @@ new bool:g_enemyKnown = false
 new float:g_enemyX = 0.0
 new float:g_enemyY = 0.0
 new float:g_enemyZ = 0.0
+new float:g_enemyDist = 0.0
 new g_enemyCellX = 0
 new g_enemyCellY = 0
 new float:g_lastEnemyTime = 0.0
@@ -234,20 +237,24 @@ stock bool:calebBuscarEnemigo() {
     new float:z
     getLocation(x, y, z)
 
-    // watch() devuelve distancia y angulo relativo. Con eso aproximamos
-    // la posicion global del enemigo.
+    // watch() devuelve distancia y angulo relativo.
+    // Con eso aproximamos la posicion global del enemigo.
     new float:enemyAngle = getDirection() + yaw
+
     g_enemyX = x + dist * cos(enemyAngle)
     g_enemyY = y + dist * sin(enemyAngle)
     g_enemyZ = z
+    g_enemyDist = dist
 
     g_enemyCellX = coordToCell(g_enemyX)
     g_enemyCellY = coordToCell(g_enemyY)
+
     g_enemyKnown = true
     g_calebDetectedEnemy = true
     g_lastEnemyTime = getTime()
 
-    // Caleb apunta al enemigo. No se prioriza atacar; su rol es informar.
+    // Caleb solo mira al enemigo para confirmar deteccion.
+    // No debe perseguirlo ni acercarse.
     rotate(enemyAngle)
     bendTorso(pitch)
     bendHead(-pitch)
@@ -269,6 +276,28 @@ stock calebReportarEnemigo() {
     speak(RADIO_CANAL_EQUIPO, word)
     g_lastReportTime = t
   }
+}
+
+stock calebAlejarseDelEnemigo() {
+  new float:x
+  new float:y
+  new float:z
+  getLocation(x, y, z)
+
+  // Calcula la direccion desde el enemigo hacia Caleb.
+  // Es decir, el sentido contrario al enemigo.
+  new float:escapeAngle = atan2(y - g_enemyY, x - g_enemyX)
+
+  // Define un punto de escape varios metros lejos del enemigo.
+  g_targetX = x + FLEE_DISTANCE * cos(escapeAngle)
+  g_targetY = y + FLEE_DISTANCE * sin(escapeAngle)
+
+  rotate(escapeAngle)
+
+  if(getEnergy() > 20.0) run()
+  else walk()
+
+  mirarAlrededor()
 }
 
 stock calebExplorar() {
@@ -294,13 +323,19 @@ stock ejecutar_estrategia_caleb() {
     recogerObjetos()
 
     if(calebBuscarEnemigo()) {
-      calebReportarEnemigo()
+        calebReportarEnemigo()
 
-      // Version basica: luego de detectar, Caleb sigue vivo y sigue explorando.
-      // En una siguiente etapa se puede hacer que vuelva al equipo.
-      if(isRunning()) walk()
+        // Caleb no debe chocar con el enemigo.
+        // Si el enemigo esta cerca, se aleja inmediatamente.
+        if(g_enemyDist < SAFE_ENEMY_DISTANCE) {
+            calebAlejarseDelEnemigo()
+        } else {
+            // Si el enemigo esta lejos, solo informa y continua explorando.
+            walk()
+            mirarAlrededor()
+        }
     } else {
-      calebExplorar()
+    calebExplorar()
     }
 
     // Mensaje opcional de vida. Sirve para que luego el equipo detecte
