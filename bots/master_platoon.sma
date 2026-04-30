@@ -96,6 +96,17 @@ new bool:g_calebKIA = false
 // UTILIDADES COMPARTIDAS (Matemática y Grilla)
 // =============================================================================
 
+/**
+ * worldToCell: Convierte coordenadas espaciales continuas a índices discretos de una grilla.
+ * Detalle extendido: Fundamental para el mapeo espacial del algoritmo DFS. Limita
+ * los valores resultantes al tamaño máximo de la grilla para prevenir desbordes de memoria.
+ * 
+ * @param wx Coordenada X actual en el mundo (Float).
+ * @param wy Coordenada Y actual en el mundo (Float).
+ * @param col Referencia de memoria donde se almacenará el índice de columna resultante.
+ * @param row Referencia de memoria donde se almacenará el índice de fila resultante.
+ * @return void (Los resultados se devuelven por referencia).
+ */
 stock worldToCell(float:wx, float:wy, &col, &row) {
   col = floatround((wx + MAP_OFFSET_F) / CELL_SIZE_F, floatround_floor)
   row = floatround((wy + MAP_OFFSET_F) / CELL_SIZE_F, floatround_floor)
@@ -103,19 +114,56 @@ stock worldToCell(float:wx, float:wy, &col, &row) {
   row = clamp(row, 0, GRID_W - 1)
 }
 
+/**
+ * cellToWorld: Transforma una coordenada discreta de grilla al centro físico del mundo.
+ * Detalle extendido: Utilizada por Caleb para establecer su g_targetX/g_targetY de navegación
+ * tras calcular el siguiente nodo óptimo en el DFS.
+ * 
+ * @param col Índice de la columna en la grilla.
+ * @param row Índice de la fila en la grilla.
+ * @param wx Referencia para almacenar la coordenada X real resultante.
+ * @param wy Referencia para almacenar la coordenada Y real resultante.
+ * @return void
+ */
 stock cellToWorld(col, row, &float:wx, &float:wy) {
   wx = float(col) * CELL_SIZE_F + CELL_SIZE_F * 0.5 - MAP_OFFSET_F
   wy = float(row) * CELL_SIZE_F + CELL_SIZE_F * 0.5 - MAP_OFFSET_F
 }
 
+/**
+ * cellIndex: Aplana una coordenada bidimensional en un índice unidimensional.
+ * Detalle extendido: Necesario para la manipulación en los arrays de bits (g_visited)
+ * y la pila de exploración (g_dfsStack), optimizando el uso de RAM.
+ * 
+ * @param col Índice de columna (0 a GRID_W - 1).
+ * @param row Índice de fila (0 a GRID_W - 1).
+ * @return El índice lineal equivalente del nodo.
+ */
 stock cellIndex(col, row) { return row * GRID_W + col; }
 
+/**
+ * wrapPi: Normaliza un ángulo para mantenerlo dentro del rango de -PI a PI.
+ * Detalle extendido: Evita el uso de la función mod() nativa que suele causar
+ * desajustes de tags flotantes en el motor Small 1.8. Crucial para los giros sin fin.
+ * 
+ * @param angle El ángulo en radianes a normalizar.
+ * @return Ángulo normalizado en el rango estricto circular.
+ */
 stock float:wrapPi(float:angle) {
   while (angle > PI_F) angle -= TWO_PI_F
   while (angle < -PI_F) angle += TWO_PI_F
   return angle
 }
 
+/**
+ * calcAngle2D: Computa la dirección (Yaw) hacia un punto relativo 2D.
+ * Detalle extendido: Implementa un arco-tangente a prueba de divisiones por cero (EPS_F).
+ * Permite a cualquier bot apuntar hacia objetivos o moverse iterativamente nodo por nodo.
+ * 
+ * @param y Diferencia en el eje Y (targetY - currentY).
+ * @param x Diferencia en el eje X (targetX - currentX).
+ * @return Ángulo resultante en radianes.
+ */
 stock float:calcAngle2D(float:y, float:x) {
   if(abs(x) < EPS_F) {
     if(y > 0.0) return PI_OVER_TWO_F
@@ -130,34 +178,87 @@ stock float:calcAngle2D(float:y, float:x) {
   return a
 }
 
+/**
+ * refreshPosition: Actualiza la caché local de coordenadas espaciales del bot.
+ * Detalle extendido: Centraliza la llamada nativa getLocation, manteniendo las
+ * variables globales g_myX/Y/Z sincronizadas en cada ciclo (Tick).
+ * 
+ * @return void
+ */
 stock refreshPosition() { getLocation(g_myX, g_myY, g_myZ); }
+
+/**
+ * collectPowerup: Verifica e intenta recolectar un objeto (powerup) en los pies del bot.
+ * Detalle extendido: Se integra en loops de espera pasiva y de exploración activa.
+ * 
+ * @return void
+ */
 stock collectPowerup() { new touched = getTouched(); if(touched) raise(touched); }
 
 // =============================================================================
 // MÓDULO 1: CALEB (Exploración Autónoma)
 // =============================================================================
 
+/**
+ * isVisited: Verifica el estado de exploración de un nodo en el bitfield.
+ * Detalle extendido: Utiliza operaciones de bit a nivel de enteros de 32-bits para comprimir
+ * 196 celdas en sólo 7 bloques de memoria, maximizando el heap space libre para GunTactyx.
+ * 
+ * @param idx Índice lineal de la celda a consultar.
+ * @return Verdadero si ya fue visitada o si el índice está fuera de los límites.
+ */
 stock bool:isVisited(idx) {
   if(idx < 0 || idx >= GRID_TOTAL) return true
   return bool:((g_visited[idx / 32] >> (idx % 32)) & 1)
 }
 
+/**
+ * markVisited: Marca un nodo bidimensional como explorado en el bitfield.
+ * Detalle extendido: Actualiza la representación binaria comprimida del mapa evitando
+ * sobre-escrituras o desbordes en índices inexistentes.
+ * 
+ * @param idx Índice lineal de la celda a marcar.
+ * @return void
+ */
 stock markVisited(idx) {
   if(idx < 0 || idx >= GRID_TOTAL) return
   g_visited[idx / 32] |= (1 << (idx % 32))
 }
 
+/**
+ * dfsPush: Empuja de forma segura un nuevo nodo (índice) a la pila de exploración de Caleb.
+ * Detalle extendido: Bloquea inserciones duplicadas evaluando isVisited(). Actúa como 
+ * una barrera contra el desborde de memoria (Stack Overflow) en la pila manual DFS_STACK_SIZE.
+ * 
+ * @param idx Índice lineal de la celda candidata a explorar.
+ * @return void
+ */
 stock dfsPush(idx) {
   if(g_dfsStackTop >= DFS_STACK_SIZE || isVisited(idx)) return
   markVisited(idx)
   g_dfsStack[g_dfsStackTop++] = idx
 }
 
+/**
+ * dfsPop: Retira y devuelve el nodo más reciente (LIFO) de la pila de exploración manual.
+ * Detalle extendido: Soporta el concepto de Backtracking en la estrategia DFS de Caleb.
+ * 
+ * @return El índice del nodo recuperado, o -1 si la pila está vacía (exploración agotada).
+ */
 stock dfsPop() {
   if(g_dfsStackTop <= 0) return -1
   return g_dfsStack[--g_dfsStackTop]
 }
 
+/**
+ * dfsPushNeighbors: Localiza e inyecta nodos ortogonales vecinos no visitados a la pila.
+ * Detalle extendido: Aplica un Shuffle (aleatorización) en el orden de las ramas. Esto 
+ * inyecta variabilidad a la exploración en diferentes rondas evitando patrones muy predecibles.
+ * 
+ * @param col Columna actual del nodo base.
+ * @param row Fila actual del nodo base.
+ * @return void
+ */
 stock dfsPushNeighbors(col, row) {
   new dirs[4], count = 0
   if(row > 0)          dirs[count++] = cellIndex(col,   row-1)
@@ -174,6 +275,13 @@ stock dfsPushNeighbors(col, row) {
   for(new i = 0; i < count; i++) dfsPush(dirs[i])
 }
 
+/**
+ * dfsAdvance: Avanza el motor de exploración extrayendo el próximo destino válido.
+ * Detalle extendido: Establece `g_targetX` y `g_targetY`. Si se agotan los nodos (-1),
+ * activa la bandera global de finalización (g_dfsExhausted) cancelando los cálculos.
+ * 
+ * @return void
+ */
 stock dfsAdvance() {
   new nextIdx = -1
   while(g_dfsStackTop > 0) {
@@ -192,6 +300,13 @@ stock dfsAdvance() {
   g_stuckTime = getTime()
 }
 
+/**
+ * dfsInit: Semilla inicial para arrancar la exploración de Caleb.
+ * Detalle extendido: Calcula su posición de aparición (spawn), marca la celda cero,
+ * puebla sus ramas vecinas y da la orden inicial de arranque hacia su primer destino DFS.
+ * 
+ * @return void
+ */
 stock dfsInit() {
   new startCol, startRow
   worldToCell(g_myX, g_myY, startCol, startRow)
@@ -200,17 +315,40 @@ stock dfsInit() {
   dfsAdvance()
 }
 
+/**
+ * arrivedAtTarget: Mide la proximidad física del bot al nodo de destino actual de la grilla.
+ * Detalle extendido: Define el área de tolerancia de llegada evitando un temblor 
+ * infinito intentando estar en la coordenada perfecta absoluta (usando ARRIVE_SQ_F).
+ * 
+ * @return Verdadero si la distancia al compás cuadrado es menor al umbral tolerado.
+ */
 stock bool:arrivedAtTarget() {
   new float:dx = g_targetX - g_myX
   new float:dy = g_targetY - g_myY
   return (dx*dx + dy*dy) < ARRIVE_SQ_F
 }
 
+/**
+ * scanWithHead: Implementa el radar visual panorámico continuo del bot Caleb.
+ * Detalle extendido: Hace oscilar la cabeza a SCAN_HEAD_LIMIT_F radianes izquierda/derecha,
+ * multiplicando el área barrida por los sensores periféricos nativos.
+ * 
+ * @return void
+ */
 stock scanWithHead() {
   rotateHead(g_headScanDir)
   if(getHeadYaw() == g_headScanDir) g_headScanDir = -g_headScanDir
 }
 
+/**
+ * moveToward: Calcula y ejecuta el impulso biomecánico hacia un objetivo coordenado.
+ * Detalle extendido: Fija temporalmente la rotación del torso para sincronizar el raycast
+ * visual frontal. Regula la estamina cambiando de correr a caminar basado en ENERGY_RUN_F.
+ * 
+ * @param tx Coordenada X del destino.
+ * @param ty Coordenada Y del destino.
+ * @return void
+ */
 stock moveToward(float:tx, float:ty) {
   new float:dx          = tx - g_myX
   new float:dy          = ty - g_myY
@@ -227,6 +365,13 @@ stock moveToward(float:tx, float:ty) {
   }
 }
 
+/**
+ * checkAntiStuck: Supervisor de inercia y atascos lógicos/físicos en el entorno 3D.
+ * Detalle extendido: Si Caleb no ha recorrido más de DIST_TWO_F en STUCK_TIME_LIMIT_F segundos,
+ * fuerza un retroceso mecánico, omite la rama actual del árbol DFS y notifica al grupo (MSG_STUCK).
+ * 
+ * @return void
+ */
 stock checkAntiStuck() {
   if(getTime() - g_stuckTime > STUCK_TIME_LIMIT_F) {
     new float:dx = g_myX - g_stuckLastX
@@ -242,6 +387,13 @@ stock checkAntiStuck() {
   }
 }
 
+/**
+ * doDFSExplore: Máquina de estados de transición paso a paso para la estrategia Caleb.
+ * Detalle extendido: Gestiona colisiones inminentes utilizando `aim()`. Activa rutinas de 
+ * evasión (Backtracking), avance a nuevas celdas y propagación continua de las reglas DFS.
+ * 
+ * @return void
+ */
 stock doDFSExplore() {
   if(g_dfsExhausted || !g_hasTarget) {
     scanWithHead()
@@ -278,6 +430,13 @@ stock doDFSExplore() {
   }
 }
 
+/**
+ * detectEnemy: Dispara la lectura cruda del sensor de visión para filtrar guerreros hostiles.
+ * Detalle extendido: De encontrar a alguien, actualiza coordenadas relativas, encausa el 
+ * cuerpo hacia la amenaza simulando una alerta física. Permite mantener caché temporal.
+ * 
+ * @return Verdadero si un enemigo está siendo vislumbrado en este frame/tick.
+ */
 stock bool:detectEnemy() {
   new item = ENEMY_WARRIOR, float:dist = 0.0, float:yaw = 0.0, float:pitch = 0.0
   watch(item, dist, yaw, pitch)
@@ -301,6 +460,13 @@ stock bool:detectEnemy() {
   return false
 }
 
+/**
+ * fleeFromEnemy: Táctica de supervivencia autónoma de Caleb.
+ * Detalle extendido: Calcula el vector opuesto exacto a la posición visualizada
+ * del enemigo y acelera para ganar distancia segura manteniendo el radar giratorio activo.
+ * 
+ * @return void
+ */
 stock fleeFromEnemy() {
   new float:absAngle = getDirection() + getTorsoYaw() + getHeadYaw() + g_enemyYawRel
   new float:enemyX   = g_myX + g_enemyDist * cos(absAngle)
@@ -319,6 +485,13 @@ stock fleeFromEnemy() {
   scanWithHead()
 }
 
+/**
+ * ipcPrepareEnemyReport: Codifica metadatos en enteros para evadir la limitación IPC del motor.
+ * Detalle extendido: GunTactyx sólo transmite Words (Enteros). Esta rutina empaqueta la 
+ * rotación y distancia flotante escalándolos y bloqueándolos listos para transmisión.
+ * 
+ * @return void
+ */
 stock ipcPrepareEnemyReport() {
   if(!g_enemyKnown) return
   g_ipcEnemyYawEncoded  = floatround(g_enemyYawRel * YAW_SCALE_F)
@@ -327,6 +500,13 @@ stock ipcPrepareEnemyReport() {
   g_ipcEnemyPending     = true
 }
 
+/**
+ * ipcTickTransmit: Operador de antena para transmitir alertas fragmentadas.
+ * Detalle extendido: Emite un protocolo ordenado a través de CH_ENEMY_SPOTTED.
+ * Trasmite Alerta -> Yaw (escalado) -> Distancia. El receptor reconstruirá esto después.
+ * 
+ * @return void
+ */
 stock ipcTickTransmit() {
   if(!g_ipcEnemyPending) return
   if(g_ipcEnemyStep == 0) {
@@ -342,16 +522,37 @@ stock ipcTickTransmit() {
   }
 }
 
+/**
+ * ipcReportKIA: Envía una baliza de emergencia en vísperas de destrucción.
+ * Detalle extendido: Si la salud cae a umbrales inviables, alerta en CH_CALEB_DOWN.
+ * Esto es la médula del reemplazo táctico para que el escuadrón lo asista sin él saberlo.
+ * 
+ * @return void
+ */
 stock ipcReportKIA() {
   if(g_calebKiaReported || getHealth() > HEALTH_LOW_F) return
   if(speak(CH_CALEB_DOWN, MSG_CALEB_KIA)) g_calebKiaReported = true
 }
 
+/**
+ * caleb_ipcPollAck: Depura los buzones de confirmación remota vaciándolos rutinariamente.
+ * Detalle extendido: El simulador apila mensajes internamente; esto "consume" los mensajes
+ * del canal RAMBO_ACTIVE para no interferir con el parseo asíncrono de Caleb.
+ * 
+ * @return void
+ */
 stock caleb_ipcPollAck() {
   new word
   listen(CH_RAMBO_ACTIVE, word)
 }
 
+/**
+ * runCalebDFS: Ciclo Perpetuo y corazón operativo de la entidad Exploradora (Caleb).
+ * Detalle extendido: Fusiona las llamadas de supervivencia `detectEnemy` con el mapeo `doDFSExplore`.
+ * Se asegura de invocar un `wait` preventivo en cada tick salvaguardando los hilos de CPU locales.
+ * 
+ * @return No retorna nunca por sí solo (for(;;)).
+ */
 runCalebDFS() {
   g_headScanDir = SCAN_HEAD_LIMIT_F
   refreshPosition()
@@ -389,6 +590,13 @@ runCalebDFS() {
 // MÓDULO 2: RAMBO (Asalto Táctico & Combate)
 // =============================================================================
 
+/**
+ * ipc_pollIncoming: Receptor síncrono para reconstruir transmisiones alienadas desde Caleb.
+ * Detalle extendido: Consume iterativamente las partes (Contacto->Yaw->Distancia). Si se
+ * pierde una secuencia, la abandona. También audita caídas de aliados (CH_CALEB_DOWN).
+ * 
+ * @return Verdadero si un bloque de inteligencia coherente fue parseado exitosamente.
+ */
 stock bool:ipc_pollIncoming() {
   new word
   new bool:hadMessage = false
@@ -435,10 +643,23 @@ stock bool:ipc_pollIncoming() {
   return hadMessage
 }
 
+/**
+ * ipc_sendAck: Emite un saludo de entrada validando que el Rambo asignado está despierto.
+ * Detalle extendido: Transmitido al equipo para silenciar dudas de "ausencia táctica".
+ * 
+ * @return void
+ */
 stock ipc_sendAck() {
   speak(CH_RAMBO_ACTIVE, MSG_RAMBO_ACK)
 }
 
+/**
+ * selectNextRamboID: Lógica de la línea de sucesión real frente a bajas militares del equipo.
+ * Detalle extendido: Busca linealmente al siguiente Bot (Candidate) iterando ID's globales 
+ * saltándose al Chief(0) y a Caleb(1). Implementa wraparound (circular) si llega al final del array.
+ * 
+ * @return Entero representando el ID del próximo bot llamado a la guerra, 0 en el peor fallback.
+ */
 stock selectNextRamboID() {
   new totalMates = getMates()
   new candidate  = g_ramboID + 1
@@ -455,6 +676,14 @@ stock selectNextRamboID() {
   return 0
 }
 
+/**
+ * chooseWeapon: Micro-orquestador armamentístico basado en la métrica espacial provista.
+ * Detalle extendido: Previene Fuego Amigo comprobando la línea de tiro usando `aim`.
+ * Desenfunda Granadas en zonas lejanas (GRENADE_MIN_F a GRENADE_MAX_F) o usa balas de otra forma.
+ * 
+ * @param dist Distancia reportada hacia el foco de atención hostil.
+ * @return Verdadero si logró disparar algún armamento, falso de estar bloqueado/vacío.
+ */
 stock bool:chooseWeapon(float:dist) {
   new const FRIEND_W = ITEM_FRIEND|ITEM_WARRIOR
   new aimTarget
@@ -475,6 +704,16 @@ stock bool:chooseWeapon(float:dist) {
   return false
 }
 
+/**
+ * doPatrolMovement: Inyecta un vector de caos estocástico al caminar impidiendo embotellamientos.
+ * Detalle extendido: Funciona como un temporizador biológico para mirar y girar pseudo-aleatoriamente
+ * durante las esperas (StandbyLoop) y bloqueos físicos contra paredes u aliados en el área.
+ * 
+ * @param lastTime Referencia al temporizador del último quiebre de trayectoria (actualizado in-place).
+ * @param headDir  Referencia del pivote de la vista actual del bot (no modificado aquí directamente).
+ * @param avoidDir Constante flotante de evasión rotacional exclusiva al ID local.
+ * @return void
+ */
 stock doPatrolMovement(&float:lastTime, &float:headDir, float:avoidDir) {
   new float:now = getTime()
 
@@ -491,6 +730,13 @@ stock doPatrolMovement(&float:lastTime, &float:headDir, float:avoidDir) {
   }
 }
 
+/**
+ * runAssaultCycle: El clímax combativo para la entidad designada como Rambo Actual.
+ * Detalle extendido: Monopoliza sus acciones hacia una caza agresiva procesando coordenadas
+ * enviadas por Caleb. Verifica constantemente su barra de vida para traspasar el título si cae (KIA).
+ * 
+ * @return void (Si retorna, implica que el bot murió o el rol fue despojado dinámicamente).
+ */
 runAssaultCycle() {
   new const ENEMY_W = ITEM_ENEMY|ITEM_WARRIOR
   new const ENEMY_G = ITEM_ENEMY|ITEM_GUN
@@ -574,6 +820,13 @@ runAssaultCycle() {
   }
 }
 
+/**
+ * standbyLoop: Estado de vigilia pasivo para los componentes no protagónicos del pelotón.
+ * Detalle extendido: Un bot en Standby patrulla áreas de bajo interés para no molestar la
+ * triangulación de Caleb y escucha atentamente nombramientos directos en su ID para escalar al asalto.
+ * 
+ * @return void (Si retorna, implica un salto contextual al `runAssaultCycle` superior).
+ */
 standbyLoop() {
   new float:lastTime  = getTime()
   new float:headDir   = SCAN_HEAD_LIMIT_F
@@ -611,6 +864,14 @@ standbyLoop() {
 // DISPATCHER MAESTRO & MAIN
 // =============================================================================
 
+/**
+ * fight: Router supremo y árbitro de inicio contextual.
+ * Detalle extendido: Evalúa el ID único del bot al momento del spawn y lo despacha
+ * a la rama Caleb si es el número asignado, o lo condena a la máquina de roles de Rambo
+ * para esperar ser el cazador primario o ser de reserva (standby).
+ * 
+ * @return void (Entra en bucles infinitos por defecto según su rol).
+ */
 fight() {
   // Sincronización pasiva de todo el pelotón
   rotate(PI_F)
@@ -643,6 +904,12 @@ fight() {
   }
 }
 
+/**
+ * soccer: Comportamiento subyacente para modalidades deportivas en el motor.
+ * Detalle extendido: Busca e interactúa autónomamente contra un objetivo tipo esférico.
+ * 
+ * @return void (Loop infinito de persecución de meta deportiva).
+ */
 soccer() {
   new float:AVOID_WALL_DIR = (getID()%2 == 0 ? PI_OVER_TEN_F : -PI_OVER_TEN_F)
   new float:lastTime = getTime()
@@ -693,6 +960,13 @@ soccer() {
   }
 }
 
+/**
+ * main: Punto de entrada nativo predefinido por el motor GunTactyx.
+ * Detalle extendido: Genera las semillas matemáticas de pseudo-azar basadas en el
+ * identificador para forzar divergencia grupal. Cede el control al juego apropiado.
+ * 
+ * @return void (Nunca retorna).
+ */
 main() {
   new botId = getID()
   seed(botId * 1024) 
