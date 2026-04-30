@@ -7,7 +7,7 @@
 //
 // Decisiones clave:
 // - DFS iterativo evita consumo excesivo de stack.
-// - Bitfield compacto para celdas visitadas.
+// - Bitfield compacto para celdas visitadas (optimizados a bloques de 32-bits).
 // - Separación clara entre navegación, combate e IPC.
 
 #include "core"
@@ -16,38 +16,38 @@
 #include "ipc_contract"
 
 // -----------------------------------------------------------------------------
-// CONSTANTES GENERALES
+// CONSTANTES GENERALES (Convertidas a Macros para evitar Error 008)
 
-new const float:PI     = 3.1415
-new const float:TWO_PI = 6.2830
+#define PI                  3.1415
+#define TWO_PI              6.2830
 
 // Parámetros de la grilla
-new const float:CELL_SIZE   = 10.0
-new const float:MAP_OFFSET  = 65.0
-new const GRID_W            = 14
-new const GRID_TOTAL        = 196
-new const DFS_STACK_SIZE    = 64
-new const VISITED_BYTES     = 25
+#define CELL_SIZE           10.0
+#define MAP_OFFSET          65.0
+#define GRID_W              14
+#define GRID_TOTAL          196
+#define DFS_STACK_SIZE      64
+#define VISITED_CELLS       7 // 196 celdas / 32 bits = 6.125 -> 7 espacios de memoria
 
 // Navegación
-new const float:STEP_ARRIVE = 3.0
-new const float:ARRIVE_SQ   = 9.0
-new const float:WALL_DIST   = 4.0
+#define ARRIVE_SQ           9.0
+#define WALL_DIST           4.0
 
 // Enemigos
-new const float:REPORT_INTERVAL     = 1.0
-new const float:SAFE_ENEMY_DISTANCE = 25.0
-new const float:FLEE_DISTANCE       = 10.0
-new const float:ENEMY_DATA_TTL      = 3.0
-new const float:SCAN_HEAD_LIMIT     = 1.047
+#define REPORT_INTERVAL     1.0
+#define SAFE_ENEMY_DISTANCE 25.0
+#define FLEE_DISTANCE       10.0
+#define ENEMY_DATA_TTL      3.0
+#define SCAN_HEAD_LIMIT     1.047
+#define ENEMY_WARRIOR       (ITEM_ENEMY | ITEM_WARRIOR)
 
-new const ENEMY_WARRIOR  = ITEM_ENEMY | ITEM_WARRIOR
+#define EPS                 0.00001
 
 // -----------------------------------------------------------------------------
 // MEMORIA LOCAL DEL BOT
 
 // DFS
-new g_visited[VISITED_BYTES]
+new g_visited[VISITED_CELLS]
 new g_dfsStack[DFS_STACK_SIZE]
 new g_dfsStackTop = 0
 new bool:g_dfsExhausted = false
@@ -59,7 +59,6 @@ new bool:g_hasTarget = false
 // Enemigo
 new bool:g_enemyKnown = false
 new float:g_enemyYawRel = 0.0
-new float:g_enemyPitchRel = 0.0
 new float:g_enemyDist = 0.0
 new float:g_enemySeenAt = -999.0
 
@@ -99,18 +98,19 @@ stock cellIndex(col, row) {
   return row * GRID_W + col
 }
 
+// Actualizado a 32-bits por celda nativa de Pawn
 stock bool:isVisited(idx) {
   if(idx < 0 || idx >= GRID_TOTAL) return true
-  new byteIdx = idx / 8
-  new bitIdx  = idx % 8
-  return bool:((g_visited[byteIdx] >> bitIdx) & 1)
+  new cellIdx = idx / 32
+  new bitIdx  = idx % 32
+  return bool:((g_visited[cellIdx] >> bitIdx) & 1)
 }
 
 stock markVisited(idx) {
   if(idx < 0 || idx >= GRID_TOTAL) return
-  new byteIdx = idx / 8
-  new bitIdx  = idx % 8
-  g_visited[byteIdx] |= (1 << bitIdx)
+  new cellIdx = idx / 32
+  new bitIdx  = idx % 32
+  g_visited[cellIdx] |= (1 << bitIdx)
 }
 
 // -----------------------------------------------------------------------------
@@ -119,6 +119,11 @@ stock markVisited(idx) {
 stock dfsPush(idx) {
   if(g_dfsStackTop >= DFS_STACK_SIZE) return
   if(isVisited(idx)) return
+  
+  // MARCAMOS como visitado en el momento de hacer push para no duplicarlo
+  // en la pila, previniendo el stack overflow de 64 elementos.
+  markVisited(idx)
+  
   g_dfsStack[g_dfsStackTop] = idx
   g_dfsStackTop++
 }
@@ -136,33 +141,12 @@ stock dfsPushNeighbors(col, row) {
   if(col < GRID_W-1)   dfsPush(cellIndex(col+1, row))
 }
 
-stock dfsInit() {
-  new startCol
-  new startRow
-  worldToCell(g_myX, g_myY, startCol, startRow)
-
-  new startIdx = cellIndex(startCol, startRow)
-  markVisited(startIdx)
-  dfsPushNeighbors(startCol, startRow)
-
-  new nextIdx = dfsPop()
-  if(nextIdx >= 0) {
-    new col = nextIdx % GRID_W
-    new row = nextIdx / GRID_W
-    cellToWorld(col, row, g_targetX, g_targetY)
-    markVisited(nextIdx)
-    dfsPushNeighbors(col, row)
-    g_hasTarget = true
-  }
-}
-
 stock dfsAdvance() {
   new nextIdx = -1
 
   while(g_dfsStackTop > 0) {
     nextIdx = dfsPop()
-    if(nextIdx >= 0 && !isVisited(nextIdx)) break
-    nextIdx = -1
+    if(nextIdx >= 0) break // Garantizado de no repetirse
   }
 
   if(nextIdx < 0) {
@@ -174,9 +158,19 @@ stock dfsAdvance() {
   new col = nextIdx % GRID_W
   new row = nextIdx / GRID_W
   cellToWorld(col, row, g_targetX, g_targetY)
-  markVisited(nextIdx)
-  dfsPushNeighbors(col, row)
   g_hasTarget = true
+}
+
+stock dfsInit() {
+  new startCol, startRow
+  worldToCell(g_myX, g_myY, startCol, startRow)
+
+  new startIdx = cellIndex(startCol, startRow)
+  markVisited(startIdx)
+  
+  // Inicializamos empujando los vecinos adyacentes y obteniendo el primer target
+  dfsPushNeighbors(startCol, startRow)
+  dfsAdvance()
 }
 
 // -----------------------------------------------------------------------------
@@ -189,7 +183,6 @@ stock float:wrapPi(float:angle) {
 }
 
 stock float:calcAngle2D(float:y, float:x) {
-  new const float:EPS = 0.00001
   if(abs(x) < EPS) {
     if(y > 0.0) return  PI / 2.0
     if(y < 0.0) return -PI / 2.0
@@ -252,7 +245,7 @@ stock bool:detectEnemy() {
 
   if(item == ENEMY_WARRIOR) {
     g_enemyYawRel   = yaw
-    g_enemyPitchRel = pitch
+    // La variable g_enemyPitchRel fue eliminada; se usa localmente.
     g_enemyDist     = dist
     g_enemyKnown    = true
     g_enemySeenAt   = getTime()
@@ -332,18 +325,30 @@ stock fleeFromEnemy() {
 }
 
 stock doDFSExplore() {
+  if(g_dfsExhausted) {
+    scanWithHead()
+    if(isRunning()) walk()
+    return
+  }
+
   if(!g_hasTarget) {
     scanWithHead()
     if(isRunning()) walk()
     return
   }
 
+  // Obstáculo detectado, se ignora el objetivo actual y se salta al siguiente
   if(sight() < WALL_DIST) {
     dfsAdvance()
     return
   }
 
+  // Empujamos los vecinos a la pila SOLO una vez que hemos llegado físicamente 
+  // al objetivo. Esto fuerza una exploración que parte desde donde está el bot.
   if(arrivedAtTarget()) {
+    new col, row
+    worldToCell(g_targetX, g_targetY, col, row)
+    dfsPushNeighbors(col, row)
     dfsAdvance()
   } else {
     moveToward(g_targetX, g_targetY)
@@ -362,7 +367,7 @@ runCalebDFS() {
   walk()
 
   for(;;) {
-    wait(0.05)
+    wait(0.05) // Descarga apropiadamente el stack en motores de simulación/bots
 
     refreshPosition()
     collectPowerup()
