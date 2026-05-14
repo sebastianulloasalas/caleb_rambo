@@ -218,13 +218,18 @@ stock selectNextRamboID(currentRambo) {
  */
 stock bool:receiveSequence(channel, &part2, &part3) {
   new tries = 0
+  new temp2, temp3
   while(tries < IPC_RECV_MAX_TRIES) {
     wait(IPC_POLL_WAIT_F)
-    if(listen(channel, part2)) {
+    if(listen(channel, temp2)) {
       tries = 0
       while(tries < IPC_RECV_MAX_TRIES) {
         wait(IPC_POLL_WAIT_F)
-        if(listen(channel, part3)) return true
+        if(listen(channel, temp3)) {
+          part2 = temp2
+          part3 = temp3
+          return true
+        }
         tries++
       }
       return false
@@ -239,7 +244,6 @@ stock bool:receiveSequence(channel, &part2, &part3) {
  */
 runChiefCycle() {
   new activeRambo = RAMBO_INITIAL_ID
-  wait(DIST_TWO_F) // Pausa de sincronización del motor al arrancar
 
   // Despliegue de Exploración
   speak(CH_CHIEF_TX, CMD_START_EXPLORE)
@@ -948,7 +952,7 @@ fight() {
   // Orquestación: Resto de la infantería espera pasivamente su asignación
   else {
     stand()
-    wait(ASSAULT_LOOP_WAIT_F)
+    wait(1.0)
 
     for(;;) {
       wait(ASSAULT_LOOP_WAIT_F) 
