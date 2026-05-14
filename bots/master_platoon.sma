@@ -11,7 +11,6 @@
 
 // =============================================================================
 // CONSTANTES GLOBALES (Macros enteras seguras)
-// =============================================================================
 
 #define GRID_W              14
 #define GRID_TOTAL          196
@@ -22,8 +21,7 @@
 #define MSG_STUCK           911 
 
 // =============================================================================
-// CONSTANTES FLOTANTES GLOBALES (Protección estricta contra Warning 213)
-// =============================================================================
+// CONSTANTES FLOTANTES GLOBALES
 
 new float:PI_F                  = 3.1415
 new float:TWO_PI_F              = 6.2830
@@ -61,7 +59,6 @@ new float:WAIT_SHORT_F          = 0.3
 
 // =============================================================================
 // MEMORIA LOCAL DE CALEB (DFS)
-// =============================================================================
 
 new g_visited[VISITED_CELLS]
 new g_dfsStack[DFS_STACK_SIZE]
@@ -84,9 +81,8 @@ new float:g_headScanDir = 0.0
 
 // =============================================================================
 // MEMORIA LOCAL DE RAMBOS (Combate)
-// =============================================================================
 
-new g_ramboID = RAMBO_INITIAL_ID
+new g_ramboID = 0 // Ahora inicializado en 0. El Jefe dicta quién despierta.
 new float:g_lastEnemyYaw = 0.0
 new float:g_lastEnemyDist = 0.0
 new bool:g_enemyContactActive = false
@@ -94,7 +90,6 @@ new bool:g_calebKIA = false
 
 // =============================================================================
 // UTILIDADES COMPARTIDAS (Matemática y Grilla)
-// =============================================================================
 
 /**
  * worldToCell: Convierte coordenadas espaciales continuas a índices discretos de una grilla.
@@ -196,8 +191,99 @@ stock refreshPosition() { getLocation(g_myX, g_myY, g_myZ); }
 stock collectPowerup() { new touched = getTouched(); if(touched) raise(touched); }
 
 // =============================================================================
-// MÓDULO 1: CALEB (Exploración Autónoma)
+// MÓDULO 0: JEFE (Centralizado)
+
+/**
+ * selectNextRamboID: Lógica de sucesión movida exclusivamente al dominio del Jefe.
+ */
+stock selectNextRamboID(currentRambo) {
+  new totalMates = getMates()
+  new candidate  = currentRambo + 1
+  new iterations = 0
+
+  while(iterations < totalMates) {
+    if(candidate >= totalMates) candidate = 0
+    // Evitar asignar al Jefe (0) o a Caleb (1)
+    if(candidate != 0 && candidate != CALEB_ID) {
+      return candidate
+    }
+    candidate++
+    iterations++
+  }
+  return 0
+}
+
+/**
+ * receiveSequence: Utilidad del Jefe para re-ensamblar la telemetría de Caleb.
+ */
+stock bool:receiveSequence(channel, &part2, &part3) {
+  new tries = 0
+  while(tries < IPC_RECV_MAX_TRIES) {
+    wait(IPC_POLL_WAIT_F)
+    if(listen(channel, part2)) {
+      tries = 0
+      while(tries < IPC_RECV_MAX_TRIES) {
+        wait(IPC_POLL_WAIT_F)
+        if(listen(channel, part3)) return true
+        tries++
+      }
+      return false
+    }
+    tries++
+  }
+  return false
+}
+
+/**
+ * runChiefCycle: Cerebro Estratégico. El bot 0 nunca combate directamente.
+ */
+runChiefCycle() {
+  new activeRambo = RAMBO_INITIAL_ID
+  wait(DIST_TWO_F) // Pausa de sincronización del motor al arrancar
+
+  // Despliegue de Exploración
+  speak(CH_CHIEF_TX, CMD_START_EXPLORE)
+  wait(IPC_POLL_WAIT_F)
+
+  // Nombramiento del Rambo Inicial
+  speak(CH_CHIEF_TX, CMD_WAKE_RAMBO_BASE + activeRambo)
+
+  // Loop Central de Enrutamiento y Mando
+  for(;;) {
+    wait(IPC_POLL_WAIT_F)
+    new word
+    
+    // El Jefe escucha todo lo que sucede en el canal de reportes
+    if(listen(CH_CHIEF_RX, word)) {
+      
+      // Caleb reporta un enemigo. El Jefe funciona como Router hacia los Rambos.
+      if(word == MSG_ENEMY_CONTACT) {
+        new yawEnc, distEnc
+        if(receiveSequence(CH_CHIEF_RX, yawEnc, distEnc)) {
+          speak(CH_CHIEF_TX, MSG_ENEMY_CONTACT)
+          wait(IPC_POLL_WAIT_F)
+          speak(CH_CHIEF_TX, yawEnc)
+          wait(IPC_POLL_WAIT_F)
+          speak(CH_CHIEF_TX, distEnc)
+        }
+      }
+      
+      // El Rambo Activo ha muerto en combate. El Jefe lo reemplaza.
+      else if(word == MSG_RAMBO_KIA) {
+        activeRambo = selectNextRamboID(activeRambo)
+        speak(CH_CHIEF_TX, CMD_WAKE_RAMBO_BASE + activeRambo)
+      }
+      
+      // Caleb ha caído. El Jefe alerta a la escuadra.
+      else if(word == MSG_CALEB_KIA) {
+        speak(CH_CHIEF_TX, MSG_CALEB_KIA)
+      }
+    }
+  }
+}
+
 // =============================================================================
+// MÓDULO 1: CALEB (Exploración Autónoma)
 
 /**
  * isVisited: Verifica el estado de exploración de un nodo en el bitfield.
@@ -377,7 +463,6 @@ stock checkAntiStuck() {
     new float:dx = g_myX - g_stuckLastX
     new float:dy = g_myY - g_stuckLastY
     if(dx*dx + dy*dy < DIST_TWO_F && g_hasTarget) {
-      speak(CH_RAMBO_ACTIVE, MSG_STUCK)
       walkbk() 
       dfsAdvance()
     }
@@ -502,19 +587,19 @@ stock ipcPrepareEnemyReport() {
 
 /**
  * ipcTickTransmit: Operador de antena para transmitir alertas fragmentadas.
- * Detalle extendido: Emite un protocolo ordenado a través de CH_ENEMY_SPOTTED.
- * Trasmite Alerta -> Yaw (escalado) -> Distancia. El receptor reconstruirá esto después.
+ * Detalle extendido: Emite un protocolo ordenado a través de CH_CHIEF_RX.
+ * Trasmite Alerta a Yaw (escalado) a Distancia. El receptor reconstruirá esto después.
  * 
  * @return void
  */
 stock ipcTickTransmit() {
   if(!g_ipcEnemyPending) return
   if(g_ipcEnemyStep == 0) {
-    if(speak(CH_ENEMY_SPOTTED, MSG_ENEMY_CONTACT)) g_ipcEnemyStep = 1
+    if(speak(CH_CHIEF_RX, MSG_ENEMY_CONTACT)) g_ipcEnemyStep = 1
   } else if(g_ipcEnemyStep == 1) {
-    if(speak(CH_ENEMY_SPOTTED, g_ipcEnemyYawEncoded)) g_ipcEnemyStep = 2
+    if(speak(CH_CHIEF_RX, g_ipcEnemyYawEncoded)) g_ipcEnemyStep = 2
   } else if(g_ipcEnemyStep == 2) {
-    if(speak(CH_ENEMY_SPOTTED, g_ipcEnemyDistEncoded)) {
+    if(speak(CH_CHIEF_RX, g_ipcEnemyDistEncoded)) {
       g_ipcEnemyStep = 0
       g_ipcEnemyPending = false
       g_lastReportTime = getTime()
@@ -523,37 +608,47 @@ stock ipcTickTransmit() {
 }
 
 /**
- * ipcReportKIA: Envía una baliza de emergencia en vísperas de destrucción.
- * Detalle extendido: Si la salud cae a umbrales inviables, alerta en CH_CALEB_DOWN.
+ * ipcReportKIA: Envía un aviso de emergencia en vísperas de destrucción.
+ * Detalle extendido: Si la salud cae a umbrales inviables, alerta en CH_CHIEF_RX.
  * Esto es la médula del reemplazo táctico para que el escuadrón lo asista sin él saberlo.
  * 
  * @return void
  */
 stock ipcReportKIA() {
   if(g_calebKiaReported || getHealth() > HEALTH_LOW_F) return
-  if(speak(CH_CALEB_DOWN, MSG_CALEB_KIA)) g_calebKiaReported = true
+  if(speak(CH_CHIEF_RX, MSG_CALEB_KIA)) g_calebKiaReported = true
 }
 
 /**
- * caleb_ipcPollAck: Depura los buzones de confirmación remota vaciándolos rutinariamente.
+ * caleb_flushChiefTx: Depura los buzones de confirmación remota vaciándolos rutinariamente.
  * Detalle extendido: El simulador apila mensajes internamente; esto "consume" los mensajes
- * del canal RAMBO_ACTIVE para no interferir con el parseo asíncrono de Caleb.
+ * del canal CH_CHIEF_TX para no interferir con el parseo asíncrono de Caleb.
  * 
  * @return void
  */
-stock caleb_ipcPollAck() {
+stock caleb_flushChiefTx() {
   new word
-  listen(CH_RAMBO_ACTIVE, word)
+  listen(CH_CHIEF_TX, word)
 }
 
 /**
- * runCalebDFS: Ciclo Perpetuo y corazón operativo de la entidad Exploradora (Caleb).
+ * runCalebDFS: Ciclo de la entidad Exploradora (Caleb).
  * Detalle extendido: Fusiona las llamadas de supervivencia `detectEnemy` con el mapeo `doDFSExplore`.
  * Se asegura de invocar un `wait` preventivo en cada tick salvaguardando los hilos de CPU locales.
  * 
  * @return No retorna nunca por sí solo (for(;;)).
  */
 runCalebDFS() {
+  // Caleb ESPERA la orden explícita del Jefe para moverse.
+  new bool:started = false
+  while(!started) {
+    new word
+    if(listen(CH_CHIEF_TX, word) && word == CMD_START_EXPLORE) {
+      started = true
+    }
+    wait(WAIT_SHORT_F)
+  }
+
   g_headScanDir = SCAN_HEAD_LIMIT_F
   refreshPosition()
   dfsInit()
@@ -581,19 +676,18 @@ runCalebDFS() {
 
     ipcTickTransmit()
     ipcReportKIA()
-    caleb_ipcPollAck()
+    caleb_flushChiefTx()
   }
 }
 
 
 // =============================================================================
 // MÓDULO 2: RAMBO (Asalto Táctico & Combate)
-// =============================================================================
 
 /**
- * ipc_pollIncoming: Receptor síncrono para reconstruir transmisiones alienadas desde Caleb.
+ * ipc_pollIncoming: Receptor síncrono para reconstruir transmisiones alienadas desde el Jefe.
  * Detalle extendido: Consume iterativamente las partes (Contacto->Yaw->Distancia). Si se
- * pierde una secuencia, la abandona. También audita caídas de aliados (CH_CALEB_DOWN).
+ * pierde una secuencia, la abandona. También audita caídas de aliados (CH_CHIEF_TX).
  * 
  * @return Verdadero si un bloque de inteligencia coherente fue parseado exitosamente.
  */
@@ -601,15 +695,21 @@ stock bool:ipc_pollIncoming() {
   new word
   new bool:hadMessage = false
 
-  if(listen(CH_CALEB_DOWN, word)) {
-    if(word == MSG_CALEB_KIA) {
+  if(listen(CH_CHIEF_TX, word)) {
+    // Manejo de nombramiento atómico
+    if(word >= CMD_WAKE_RAMBO_BASE) {
+      g_ramboID = word - CMD_WAKE_RAMBO_BASE
+      hadMessage = true
+    }
+
+    // Muerte de Caleb
+    else if(word == MSG_CALEB_KIA) {
       g_calebKIA = true
       hadMessage = true
     }
-  }
 
-  if(listen(CH_ENEMY_SPOTTED, word)) {
-    if(word == MSG_ENEMY_CONTACT) {
+    // Recepción de coordenadas enrutadas por el Jefe
+    else if(word == MSG_ENEMY_CONTACT) {
       new yawEncoded = 0
       new distEncoded = 0
       new tries = 0
@@ -617,11 +717,11 @@ stock bool:ipc_pollIncoming() {
 
       while(tries < IPC_RECV_MAX_TRIES) {
         wait(IPC_POLL_WAIT_F) 
-        if(listen(CH_ENEMY_SPOTTED, yawEncoded)) {
+        if(listen(CH_CHIEF_TX, yawEncoded)) {
           tries = 0
           while(tries < IPC_RECV_MAX_TRIES) {
             wait(IPC_POLL_WAIT_F)
-            if(listen(CH_ENEMY_SPOTTED, distEncoded)) {
+            if(listen(CH_CHIEF_TX, distEncoded)) {
               seqOK = true
               break
             }
@@ -641,39 +741,6 @@ stock bool:ipc_pollIncoming() {
     }
   }
   return hadMessage
-}
-
-/**
- * ipc_sendAck: Emite un saludo de entrada validando que el Rambo asignado está despierto.
- * Detalle extendido: Transmitido al equipo para silenciar dudas de "ausencia táctica".
- * 
- * @return void
- */
-stock ipc_sendAck() {
-  speak(CH_RAMBO_ACTIVE, MSG_RAMBO_ACK)
-}
-
-/**
- * selectNextRamboID: Lógica de la línea de sucesión real frente a bajas militares del equipo.
- * Detalle extendido: Busca linealmente al siguiente Bot (Candidate) iterando ID's globales 
- * saltándose al Chief(0) y a Caleb(1). Implementa wraparound (circular) si llega al final del array.
- * 
- * @return Entero representando el ID del próximo bot llamado a la guerra, 0 en el peor fallback.
- */
-stock selectNextRamboID() {
-  new totalMates = getMates()
-  new candidate  = g_ramboID + 1
-  new iterations = 0
-
-  while(iterations < totalMates) {
-    if(candidate >= totalMates) candidate = 0
-    if(candidate != 0 && candidate != CALEB_ID) {
-      return candidate
-    }
-    candidate++
-    iterations++
-  }
-  return 0
 }
 
 /**
@@ -745,8 +812,6 @@ runAssaultCycle() {
   new float:lastTime    = getTime()
   new float:avoidDir    = (getID() % 2 == 0) ? PI_OVER_TEN_F : -PI_OVER_TEN_F
 
-  ipc_sendAck()
-
   if(g_enemyContactActive) {
     rotate(getDirection() + g_lastEnemyYaw)
     run()
@@ -757,13 +822,19 @@ runAssaultCycle() {
   for(;;) {
     wait(ASSAULT_LOOP_WAIT_F) 
 
+    // Si Rambo muere, reporta al Jefe y corta su proceso.
     if(getHealth() <= 0.0) {
-      g_ramboID = selectNextRamboID()
-      speak(CH_RAMBO_ACTIVE, g_ramboID)
+      speak(CH_CHIEF_RX, MSG_RAMBO_KIA)
       return 
     }
 
     ipc_pollIncoming()
+
+    // Si el Jefe designó a otro bot mientras este seguía vivo
+    if(g_ramboID != getID()) {
+      return 
+    }
+
     collectPowerup()
 
     new item      = ENEMY_W
@@ -808,15 +879,6 @@ runAssaultCycle() {
         if(getHeadYaw() == headDir) headDir = -headDir
       }
     }
-
-    new newRamboWord
-    if(listen(CH_RAMBO_ACTIVE, newRamboWord)) {
-      // Prevención de Bug IPC: MSG_STUCK no es un nuevo Rambo ID
-      if(newRamboWord != MSG_RAMBO_ACK && newRamboWord != MSG_STUCK) {
-        g_ramboID = newRamboWord
-        if(g_ramboID != getID()) return
-      }
-    }
   }
 }
 
@@ -838,18 +900,13 @@ standbyLoop() {
   for(;;) {
     wait(STANDBY_LOOP_WAIT_F) 
 
-    new newRamboWord
-    if(listen(CH_RAMBO_ACTIVE, newRamboWord)) {
-      if(newRamboWord != MSG_RAMBO_ACK && newRamboWord != MSG_STUCK) {
-        g_ramboID = newRamboWord
-      }
-    }
+    ipc_pollIncoming() // Actualiza g_ramboID leyendo CH_CHIEF_TX
 
+    // Si el Jefe lo invoca, sale del standby directo al asalto.
     if(g_ramboID == getID()) {
       return 
     }
 
-    ipc_pollIncoming()
     collectPowerup()
     doPatrolMovement(lastTime, headDir, avoidDir)
 
@@ -861,8 +918,7 @@ standbyLoop() {
 }
 
 // =============================================================================
-// DISPATCHER MAESTRO & MAIN
-// =============================================================================
+// DISPATCHER MAIN
 
 /**
  * fight: Router supremo y árbitro de inicio contextual.
@@ -877,88 +933,35 @@ fight() {
   rotate(PI_F)
   wait(DIST_TWO_F) 
 
-  if(getID() == CALEB_ID) {
-    // Orquestación: Solo Caleb entra al bucle ciego de DFS
-    runCalebDFS()
-  } else {
-    // Orquestación: Lógica de Rambos y Cadetes en Espera
-    if(getID() == RAMBO_INITIAL_ID) {
-      walk()
-      wait(ASSAULT_LOOP_WAIT_F)
-    } else {
-      walk()
-      wait(ASSAULT_LOOP_WAIT_F)
-      new word
-      listen(CH_RAMBO_ACTIVE, word) 
-    }
+  new myID = getID()
 
-    // Máquina de estados dinámica de Roles Secundarios
+  // Orquestación: El Jefe (0) toma el mando en su thread exclusivo
+  if(myID == 0) {
+    runChiefCycle()
+  } 
+
+  // Orquestación: Caleb (1) queda pendiente de órdenes
+  else if(myID == CALEB_ID) {
+    runCalebDFS()
+  } 
+
+  // Orquestación: Resto de la infantería espera pasivamente su asignación
+  else {
+    stand()
+    wait(ASSAULT_LOOP_WAIT_F)
+
     for(;;) {
       wait(ASSAULT_LOOP_WAIT_F) 
-      if(g_ramboID == getID()) {
-        runAssaultCycle() // Rambo Activo: Inicia Modo Combate
+      if(g_ramboID == myID) {
+        runAssaultCycle() // Jefe lo nombró activo
       } else {
-        standbyLoop()     // Rambo Suplente: Patrulla pasiva
+        standbyLoop()     // Jefe lo tiene en reserva
       }
     }
   }
 }
 
-/**
- * soccer: Comportamiento subyacente para modalidades deportivas en el motor.
- * Detalle extendido: Busca e interactúa autónomamente contra un objetivo tipo esférico.
- * 
- * @return void (Loop infinito de persecución de meta deportiva).
- */
-soccer() {
-  new float:AVOID_WALL_DIR = (getID()%2 == 0 ? PI_OVER_TEN_F : -PI_OVER_TEN_F)
-  new float:lastTime = getTime()
-
-  rotate(getDirection() + TWO_PI_F)
-  new float:dist, float:yaw, item
-
-  do {
-    item = ITEM_TARGET
-    dist = 0.0
-    watch(item, dist, yaw)
-    wait(ASSAULT_LOOP_WAIT_F) 
-  } while(item != ITEM_TARGET)
-
-  rotate(getDirection() + yaw)
-  setKickSpeed(getMaxKickSpeed())
-  bendTorso(WAIT_SHORT_F)
-  bendHead(-WAIT_SHORT_F)
-
-  new float:waitTime = STUCK_TIME_LIMIT_F - getTime() + lastTime 
-  if(waitTime > 0.0) wait(waitTime)
-  
-  walk()
-  wait(IPC_POLL_WAIT_F)
-
-  for(;;) {
-    wait(ASSAULT_LOOP_WAIT_F) 
-    new float:now = getTime()
-    
-    if(now - lastTime > PATROL_DIR_CHANGE_F) { 
-      lastTime = now
-      rotate(getDirection() + (float(random(2)) - 0.5) * PI_F)
-    } else if(isStanding()) {
-      rotate(getDirection() + (float(random(2)) - 0.5) * PI_F)
-      wait(REPORT_INTERVAL_F) 
-      walk()
-    } else if(sight() < DIST_TWO_F) {
-      rotate(getDirection() + AVOID_WALL_DIR)
-    }
-    collectPowerup()
-    item = ITEM_TARGET
-    dist = 0.0
-    watch(item, dist, yaw)
-    if(item == ITEM_TARGET) {
-      rotate(yaw + getDirection())
-      if(isWalking()) run()
-    }
-  }
-}
+soccer() { }
 
 /**
  * main: Punto de entrada nativo predefinido por el motor GunTactyx.
