@@ -23,39 +23,39 @@
 // =============================================================================
 // CONSTANTES FLOTANTES GLOBALES
 
-new float:PI_F                  = 3.1415
-new float:TWO_PI_F              = 6.2830
-new float:PI_OVER_TWO_F         = 1.5707
-new float:PI_OVER_TEN_F         = 0.3141
+#define PI_F 3.1415
+#define TWO_PI_F 6.2830
+#define PI_OVER_TWO_F 1.5707
+#define PI_OVER_TEN_F 0.3141
 
-new float:CELL_SIZE_F           = 10.0
-new float:MAP_OFFSET_F          = 65.0
-new float:ARRIVE_SQ_F           = 9.0
-new float:WALL_DIST_F           = 4.0
-new float:STUCK_TIME_LIMIT_F    = 3.0
-new float:REPORT_INTERVAL_F     = 1.0
-new float:SAFE_ENEMY_DISTANCE_F = 25.0
-new float:FLEE_DISTANCE_F       = 10.0
-new float:ENEMY_DATA_TTL_F      = 3.0
-new float:SCAN_HEAD_LIMIT_F     = 1.047
-new float:EPS_F                 = 0.00001
-new float:TURN_TOLERANCE_F      = 0.35
-new float:FRONT_TOLERANCE_F     = 0.5
-new float:ENERGY_RUN_F          = 20.0
-new float:DIST_TWO_F            = 2.0
+#define CELL_SIZE_F 10.0
+#define MAP_OFFSET_F 65.0
+#define ARRIVE_SQ_F 9.0
+#define WALL_DIST_F 4.0
+#define STUCK_TIME_LIMIT_F 3.0
+#define REPORT_INTERVAL_F 1.0
+#define SAFE_ENEMY_DISTANCE_F 25.0
+#define FLEE_DISTANCE_F 10.0
+#define ENEMY_DATA_TTL_F 3.0
+#define SCAN_HEAD_LIMIT_F 1.047
+#define EPS_F 0.00001
+#define TURN_TOLERANCE_F 0.35
+#define FRONT_TOLERANCE_F 0.5
+#define ENERGY_RUN_F 20.0
+#define DIST_TWO_F 2.0
 
-new float:PATROL_DIR_CHANGE_F   = 15.0
-new float:WALL_AVOID_DIST_F     = 5.0
-new float:ASSAULT_LOOP_WAIT_F   = 0.05
-new float:STANDBY_LOOP_WAIT_F   = 0.1
-new float:GRENADE_MIN_F         = 30.0
-new float:GRENADE_MAX_F         = 60.0
-new float:HEALTH_LOW_F          = 25.0
-new float:YAW_UNSCALE_F         = 1000.0
-new float:YAW_SCALE_F           = 1000.0
-new float:IPC_POLL_WAIT_F       = 0.1
-new float:WAIT_HALF_F           = 0.5
-new float:WAIT_SHORT_F          = 0.3
+#define PATROL_DIR_CHANGE_F 15.0
+#define WALL_AVOID_DIST_F 5.0
+#define ASSAULT_LOOP_WAIT_F 0.05
+#define STANDBY_LOOP_WAIT_F 0.1
+#define GRENADE_MIN_F 30.0
+#define GRENADE_MAX_F 60.0
+#define HEALTH_LOW_F 25.0
+#define YAW_UNSCALE_F 1000.0
+#define YAW_SCALE_F 1000.0
+#define IPC_POLL_WAIT_F 0.1
+#define WAIT_HALF_F 0.5
+#define WAIT_SHORT_F 0.3
 
 // =============================================================================
 // MEMORIA LOCAL DE CALEB (DFS)
